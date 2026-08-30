@@ -223,6 +223,13 @@ export default function Login() {
         </>
         )}
         </div>
+        <div className="flex items-center justify-center gap-3 text-[11px] text-gray-400 mt-4">
+          <a href="/about" className="hover:text-gray-600">{t.footerAbout}</a>
+          <span>·</span>
+          <a href="/terms" className="hover:text-gray-600">{t.footerTerms}</a>
+          <span>·</span>
+          <a href="/privacy" className="hover:text-gray-600">{t.footerPrivacy}</a>
+        </div>
       </div>
     </div>
   );

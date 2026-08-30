@@ -111,6 +111,15 @@ const en = {
   resetSuccess: "Your password has been reset. You can now sign in.",
   backToLogin: "Back to sign in",
   invalidResetLink: "This reset link is invalid or has expired.",
+  aboutTitle: "About Us",
+  termsTitle: "Terms and Conditions",
+  privacyTitle: "Privacy Policy",
+  lastUpdated: "Last updated: August 2026",
+  backToApp: "Back",
+  footerAbout: "About Us",
+  footerTerms: "Terms",
+  footerPrivacy: "Privacy Policy",
+
 };
 
 const ha = {
@@ -215,6 +224,15 @@ const ha = {
   resetSuccess: "An sake saita password dinka. Yanzu za ka iya shiga.",
   backToLogin: "Koma shiga",
   invalidResetLink: "Wannan link din ba daidai ba ne ko kuma ya kare.",
+  aboutTitle: "Game da Mu",
+  termsTitle: "Sharuɗɗa da Ka'idoji",
+  privacyTitle: "Manufar Sirri",
+  lastUpdated: "An sabunta: Agusta 2026",
+  backToApp: "Baya",
+  footerAbout: "Game da Mu",
+  footerTerms: "Sharuɗɗa",
+  footerPrivacy: "Manufar Sirri",
+
 };
 
 const fr = {
@@ -319,6 +337,15 @@ const fr = {
   resetSuccess: "Votre mot de passe a été réinitialisé. Vous pouvez vous connecter.",
   backToLogin: "Retour à la connexion",
   invalidResetLink: "Ce lien de réinitialisation est invalide ou a expiré.",
+  aboutTitle: "À propos de nous",
+  termsTitle: "Conditions Générales",
+  privacyTitle: "Politique de Confidentialité",
+  lastUpdated: "Dernière mise à jour : août 2026",
+  backToApp: "Retour",
+  footerAbout: "À propos",
+  footerTerms: "Conditions",
+  footerPrivacy: "Confidentialité",
+
 };
 
 const ar = {
@@ -423,6 +450,15 @@ const ar = {
   resetSuccess: "تمت إعادة تعيين كلمة المرور. يمكنك الآن تسجيل الدخول.",
   backToLogin: "العودة لتسجيل الدخول",
   invalidResetLink: "هذا الرابط غير صالح أو منتهي الصلاحية.",
+  aboutTitle: "من نحن",
+  termsTitle: "الشروط والأحكام",
+  privacyTitle: "سياسة الخصوصية",
+  lastUpdated: "آخر تحديث: أغسطس 2026",
+  backToApp: "رجوع",
+  footerAbout: "من نحن",
+  footerTerms: "الشروط",
+  footerPrivacy: "الخصوصية",
+
 };
 
 const yo = {
@@ -527,6 +563,15 @@ const yo = {
   resetSuccess: "A ti tún ọ̀rọ̀ ìpamọ́ rẹ ṣe. O lè wọlé nísinsìnyí.",
   backToLogin: "Padà sí ìwọlé",
   invalidResetLink: "Ọ̀ọ̀nà àtúnṣe yìí kò tọ́ tàbí ó ti parí.",
+  aboutTitle: "Nípa Wa",
+  termsTitle: "Àwọn Òfin àti Ìlànà",
+  privacyTitle: "Ìlànà Àṣírí",
+  lastUpdated: "Ìmúdójúìwọ̀n kẹ́yìn: Ọ̀wàrà 2026",
+  backToApp: "Padà",
+  footerAbout: "Nípa Wa",
+  footerTerms: "Àwọn Òfin",
+  footerPrivacy: "Àṣírí",
+
 };
 
 const sw = {
@@ -618,6 +663,15 @@ const sw = {
   resetSuccess: "Nenosiri lako limewekwa upya. Sasa unaweza kuingia.",
   backToLogin: "Rudi kuingia",
   invalidResetLink: "Kiungo hiki si sahihi au kimeisha muda wake.",
+  aboutTitle: "Kuhusu Sisi",
+  termsTitle: "Masharti na Vigezo",
+  privacyTitle: "Sera ya Faragha",
+  lastUpdated: "Ilisasishwa mwisho: Agosti 2026",
+  backToApp: "Rudi",
+  footerAbout: "Kuhusu Sisi",
+  footerTerms: "Masharti",
+  footerPrivacy: "Faragha",
+
 };
 
 const ur = {
@@ -709,6 +763,15 @@ const ur = {
   resetSuccess: "آپ کا پاس ورڈ ری سیٹ ہو گیا۔ اب آپ لاگ ان کر سکتے ہیں۔",
   backToLogin: "لاگ ان پر واپس جائیں",
   invalidResetLink: "یہ ری سیٹ لنک غلط ہے یا میعاد ختم ہو چکی ہے۔",
+  aboutTitle: "ہمارے بارے میں",
+  termsTitle: "شرائط و ضوابط",
+  privacyTitle: "رازداری کی پالیسی",
+  lastUpdated: "آخری تازہ کاری: اگست 2026",
+  backToApp: "واپس",
+  footerAbout: "ہمارے بارے میں",
+  footerTerms: "شرائط",
+  footerPrivacy: "رازداری",
+
 };
 
 const id = {
@@ -800,6 +863,15 @@ const id = {
   resetSuccess: "Kata sandi Anda telah diatur ulang. Anda kini dapat masuk.",
   backToLogin: "Kembali ke halaman masuk",
   invalidResetLink: "Tautan atur ulang ini tidak valid atau sudah kedaluwarsa.",
+  aboutTitle: "Tentang Kami",
+  termsTitle: "Syarat dan Ketentuan",
+  privacyTitle: "Kebijakan Privasi",
+  lastUpdated: "Terakhir diperbarui: Agustus 2026",
+  backToApp: "Kembali",
+  footerAbout: "Tentang Kami",
+  footerTerms: "Syarat",
+  footerPrivacy: "Privasi",
+
 };
 
 export const TRANSLATIONS = { en, ha, fr, ar, yo, sw, ur, id };

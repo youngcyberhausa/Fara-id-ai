@@ -5,6 +5,9 @@ import LanguageSwitcher from "./components/LanguageSwitcher";
 import IslamicWatermark from "./components/IslamicWatermark";
 import Login from "./components/Login";
 import ResetPassword from "./components/ResetPassword";
+import AboutUs from "./components/AboutUs";
+import Terms from "./components/Terms";
+import PrivacyPolicy from "./components/PrivacyPolicy";
 import StepTabs, { STEPS } from "./components/StepTabs";
 import StepEstate from "./components/StepEstate";
 import StepDeductions from "./components/StepDeductions";
@@ -19,6 +22,22 @@ function AppInner() {
   const [resetToken, setResetToken] = useState(
     () => new URLSearchParams(window.location.search).get("reset_token")
   );
+  const [page, setPage] = useState(() => {
+    const p = window.location.pathname;
+    if (p === "/about") return "about";
+    if (p === "/terms") return "terms";
+    if (p === "/privacy") return "privacy";
+    return "app";
+  });
+
+  function navigate(path, name) {
+    window.history.pushState({}, "", path);
+    setPage(name);
+  }
+  function goHome() {
+    window.history.pushState({}, "", "/");
+    setPage("app");
+  }
   const [stepIndex, setStepIndex] = useState(0);
   const [data, setData] = useState({
     title: "",
@@ -36,6 +55,10 @@ function AppInner() {
   const [saving, setSaving] = useState(false);
 
   const step = STEPS[stepIndex];
+
+  if (page === "about") return <AboutUs onBack={goHome} />;
+  if (page === "terms") return <Terms onBack={goHome} />;
+  if (page === "privacy") return <PrivacyPolicy onBack={goHome} />;
 
   if (resetToken) {
     return (
@@ -213,8 +236,21 @@ function AppInner() {
           </div>
         </div>
 
-        <div className="text-center text-[11px] text-gray-400 mt-8 pb-6">
+        <div className="text-center text-[11px] text-gray-400 mt-8 pb-2">
           {t.appName} · {t.tagline} · {t.scholarBadge}
+        </div>
+        <div className="flex items-center justify-center gap-4 text-[11px] text-gray-400 pb-6">
+          <button onClick={() => navigate("/about", "about")} className="hover:text-gray-600">
+            {t.footerAbout}
+          </button>
+          <span>·</span>
+          <button onClick={() => navigate("/terms", "terms")} className="hover:text-gray-600">
+            {t.footerTerms}
+          </button>
+          <span>·</span>
+          <button onClick={() => navigate("/privacy", "privacy")} className="hover:text-gray-600">
+            {t.footerPrivacy}
+          </button>
         </div>
       </main>
     </div>
