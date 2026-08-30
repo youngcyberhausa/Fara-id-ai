@@ -36,23 +36,43 @@ export default function StepResult({ result, loading, error }) {
         {result.breakdown.map((b) => (
           <div
             key={b.heir_type}
-            className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3"
+            className="rounded-lg border border-gray-200 px-4 py-3"
           >
-            <div>
-              <div className="text-sm font-medium text-gray-800">
-                {b.label} {b.count > 1 ? `× ${b.count}` : ""}
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-gray-800">
+                  {t.heirs?.[b.heir_type] || b.label} {b.count > 1 ? `× ${b.count}` : ""}
+                </div>
+                <div className="text-xs text-gray-400">
+                  {b.share_fraction} ({b.share_percent}%)
+                  {b.count > 1 ? ` — ${b.amount_per_person.toLocaleString()} ${result.currency} ${t.perPerson}` : ""}
+                </div>
               </div>
-              <div className="text-xs text-gray-400">
-                {b.share_fraction} ({b.share_percent}%)
-                {b.count > 1 ? ` — ${b.amount_per_person.toLocaleString()} ${result.currency} ${t.perPerson}` : ""}
+              <div className="text-sm font-semibold text-brand-700">
+                {b.amount_total.toLocaleString()} {result.currency}
               </div>
             </div>
-            <div className="text-sm font-semibold text-brand-700">
-              {b.amount_total.toLocaleString()} {result.currency}
-            </div>
+            {t.evidence?.[b.heir_type] && (
+              <div className="mt-2 pt-2 border-t border-gray-100 text-[11px] text-gray-500 flex gap-1.5">
+                <span aria-hidden="true">📖</span>
+                <span>{t.evidence[b.heir_type]}</span>
+              </div>
+            )}
           </div>
         ))}
       </div>
+
+      {t.evidenceGeneral && (
+        <div className="mt-6 bg-emerald-50 border border-emerald-100 rounded-lg px-4 py-3">
+          <div className="text-xs font-semibold text-emerald-800 uppercase tracking-wide mb-1.5">
+            {t.evidenceTitle}
+          </div>
+          {t.evidenceIntro && (
+            <div className="text-xs text-emerald-700 mb-2">{t.evidenceIntro}</div>
+          )}
+          <p className="text-xs text-emerald-800 leading-relaxed">{t.evidenceGeneral}</p>
+        </div>
+      )}
 
       {result.notes?.length > 0 && (
         <div className="mt-6">

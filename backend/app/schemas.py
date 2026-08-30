@@ -46,3 +46,33 @@ class CalculateRequest(BaseModel):
     debts: float = 0
     wasiyyah_amount: float = 0
     heirs: List[HeirInput]
+
+
+class UserOut(BaseModel):
+    id: str
+    email: str
+    name: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class RegisterRequest(BaseModel):
+    email: str
+    password: str = Field(min_length=6)
+    name: Optional[str] = None
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class GoogleAuthRequest(BaseModel):
+    id_token: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserOut

@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { LanguageProvider, useLang } from "./i18n/LanguageContext";
+import { useAuth } from "./AuthContext";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import IslamicWatermark from "./components/IslamicWatermark";
+import Login from "./components/Login";
 import StepTabs, { STEPS } from "./components/StepTabs";
 import StepEstate from "./components/StepEstate";
 import StepDeductions from "./components/StepDeductions";
@@ -12,6 +14,7 @@ import { api } from "./api";
 
 function AppInner() {
   const { t } = useLang();
+  const { user, loading: authLoading, logout } = useAuth();
   const [stepIndex, setStepIndex] = useState(0);
   const [data, setData] = useState({
     title: "",
@@ -29,6 +32,18 @@ function AppInner() {
   const [saving, setSaving] = useState(false);
 
   const step = STEPS[stepIndex];
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-sm text-gray-400">
+        {t.loadingAuth}
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login />;
+  }
 
   async function goNext() {
     if (step === "heirs") {
@@ -97,7 +112,17 @@ function AppInner() {
               <div className="text-[11px] text-gray-400 leading-tight">{t.tagline}</div>
             </div>
           </div>
-          <LanguageSwitcher />
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher />
+            {user && (
+              <button
+                onClick={logout}
+                className="text-xs text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5"
+              >
+                {t.logout}
+              </button>
+            )}
+          </div>
         </div>
       </header>
 

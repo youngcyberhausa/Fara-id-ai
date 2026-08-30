@@ -13,7 +13,10 @@ export function LanguageProvider({ children }) {
     document.documentElement.lang = lang;
   }, [lang]);
 
-  const t = useMemo(() => TRANSLATIONS[lang] || TRANSLATIONS.en, [lang]);
+  const t = useMemo(
+    () => ({ ...TRANSLATIONS.en, ...(TRANSLATIONS[lang] || {}) }),
+    [lang]
+  );
   const dir = useMemo(() => LANGUAGES.find((l) => l.code === lang)?.dir || "ltr", [lang]);
 
   return (

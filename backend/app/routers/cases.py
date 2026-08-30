@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
 from ..faraid_engine import calculate_faraid, HEIR_LABELS
+from ..deps import get_current_user
 
 router = APIRouter(prefix="/api", tags=["cases"])
 
@@ -65,16 +66,21 @@ def _build_result(payload: dict) -> dict:
 
 
 @router.post("/calculate")
-def calculate(req: schemas.CalculateRequest):
+def calculate(req: schemas.CalculateRequest, user: models.User = Depends(get_current_user)):
     result = _build_result(req.model_dump())
     return result
 
 
 @router.post("/cases", response_model=schemas.CaseOut)
-def create_case(case: schemas.CaseCreate, db: Session = Depends(get_db)):
+def create_case(
+    case: schemas.CaseCreate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
     payload = case.model_dump()
     result = _build_result(payload)
     db_case = models.Case(
+        user_id=user.id,
         title=payload.get("title") or "Untitled Case",
         estate_amount=payload["estate_amount"],
         currency=payload.get("currency", "NGN"),
@@ -91,21 +97,46 @@ def create_case(case: schemas.CaseCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/cases", response_model=List[schemas.CaseOut])
-def list_cases(db: Session = Depends(get_db)):
-    return db.query(models.Case).order_by(models.Case.created_at.desc()).all()
+def list_cases(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    return (
+        db.query(models.Case)
+        .filter(models.Case.user_id == user.id)
+        .order_by(models.Case.created_at.desc())
+        .all()
+    )
 
 
 @router.get("/cases/{case_id}", response_model=schemas.CaseOut)
-def get_case(case_id: str, db: Session = Depends(get_db)):
-    db_case = db.query(models.Case).filter(models.Case.id == case_id).first()
+def get_case(
+    case_id: str,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    db_case = (
+        db.query(models.Case)
+        .filter(models.Case.id == case_id, models.Case.user_id == user.id)
+        .first()
+    )
     if not db_case:
         raise HTTPException(status_code=404, detail="Case not found")
     return db_case
 
 
 @router.put("/cases/{case_id}", response_model=schemas.CaseOut)
-def update_case(case_id: str, case: schemas.CaseUpdate, db: Session = Depends(get_db)):
-    db_case = db.query(models.Case).filter(models.Case.id == case_id).first()
+def update_case(
+    case_id: str,
+    case: schemas.CaseUpdate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    db_case = (
+        db.query(models.Case)
+        .filter(models.Case.id == case_id, models.Case.user_id == user.id)
+        .first()
+    )
     if not db_case:
         raise HTTPException(status_code=404, detail="Case not found")
 
@@ -127,8 +158,16 @@ def update_case(case_id: str, case: schemas.CaseUpdate, db: Session = Depends(ge
 
 
 @router.delete("/cases/{case_id}")
-def delete_case(case_id: str, db: Session = Depends(get_db)):
-    db_case = db.query(models.Case).filter(models.Case.id == case_id).first()
+def delete_case(
+    case_id: str,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    db_case = (
+        db.query(models.Case)
+        .filter(models.Case.id == case_id, models.Case.user_id == user.id)
+        .first()
+    )
     if not db_case:
         raise HTTPException(status_code=404, detail="Case not found")
     db.delete(db_case)
