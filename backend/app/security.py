@@ -7,6 +7,7 @@ import hmac
 import hashlib
 import base64
 import time
+import secrets
 from typing import Optional
 
 import jwt
@@ -52,3 +53,7 @@ def decode_access_token(token: str) -> Optional[str]:
         return payload.get("sub")
     except jwt.PyJWTError:
         return None
+
+
+def generate_reset_token() -> str:
+    return secrets.token_urlsafe(32)

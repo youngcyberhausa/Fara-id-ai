@@ -17,6 +17,8 @@ class User(Base):
     name = Column(String, nullable=True)
     password_hash = Column(String, nullable=True)  # null if Google-only account
     google_sub = Column(String, unique=True, nullable=True, index=True)
+    reset_token = Column(String, nullable=True, index=True)
+    reset_token_expires = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 

@@ -1,6 +1,5 @@
 import { useLang } from "../i18n/LanguageContext";
-
-const CURRENCIES = ["NGN", "USD", "GBP", "EUR", "SAR", "GHS"];
+import { CURRENCIES } from "../i18n/currencies";
 
 export default function StepEstate({ data, setData }) {
   const { t } = useLang();
@@ -23,11 +22,11 @@ export default function StepEstate({ data, setData }) {
           <select
             value={data.currency}
             onChange={(e) => setData({ ...data, currency: e.target.value })}
-            className="bg-gray-50 text-sm text-gray-500 px-3 border-l border-gray-200 outline-none"
+            className="bg-gray-50 text-sm text-gray-500 px-3 border-l border-gray-200 outline-none max-w-[130px]"
           >
             {CURRENCIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
+              <option key={c.code} value={c.code}>
+                {c.code} — {c.name}
               </option>
             ))}
           </select>

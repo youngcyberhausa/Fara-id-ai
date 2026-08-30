@@ -70,4 +70,18 @@ export const authApi = {
     }).then(handle),
 
   me: () => fetch(`${BASE_URL}/auth/me`, { headers: authHeaders() }).then(handle),
+
+  forgotPassword: (email) =>
+    fetch(`${BASE_URL}/auth/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    }).then(handle),
+
+  resetPassword: (token, newPassword) =>
+    fetch(`${BASE_URL}/auth/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, new_password: newPassword }),
+    }).then(handle),
 };

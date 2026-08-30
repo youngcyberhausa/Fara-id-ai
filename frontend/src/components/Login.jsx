@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useLang } from "../i18n/LanguageContext";
 import { useAuth } from "../AuthContext";
+import { authApi } from "../api";
 import LanguageSwitcher from "./LanguageSwitcher";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
@@ -8,11 +9,12 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 export default function Login() {
   const { t } = useLang();
   const { login, register, loginWithGoogle } = useAuth();
-  const [mode, setMode] = useState("login"); // "login" | "register"
+  const [mode, setMode] = useState("login"); // "login" | "register" | "forgot"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState(null);
+  const [info, setInfo] = useState(null);
   const [busy, setBusy] = useState(false);
   const googleDivRef = useRef(null);
 
@@ -47,9 +49,13 @@ export default function Login() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
+    setInfo(null);
     setBusy(true);
     try {
-      if (mode === "register") {
+      if (mode === "forgot") {
+        await authApi.forgotPassword(email.trim());
+        setInfo(t.resetLinkSent);
+      } else if (mode === "register") {
         await register(email.trim(), password, name.trim() || undefined);
       } else {
         await login(email.trim(), password);
@@ -79,10 +85,10 @@ export default function Login() {
         </div>
 
         <h1 className="text-lg font-semibold text-gray-900">
-          {mode === "login" ? t.loginTitle : t.registerTitle}
+          {mode === "login" ? t.loginTitle : mode === "register" ? t.registerTitle : t.forgotPasswordTitle}
         </h1>
         <p className="text-sm text-gray-500 mt-1">
-          {mode === "login" ? t.loginDesc : t.registerDesc}
+          {mode === "login" ? t.loginDesc : mode === "register" ? t.registerDesc : t.forgotPasswordDesc}
         </p>
 
         <form onSubmit={handleSubmit} className="mt-5 space-y-3">
@@ -107,21 +113,43 @@ export default function Login() {
               className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
             />
           </div>
-          <div>
-            <label className="text-xs font-medium text-gray-600">{t.passwordLabel}</label>
-            <input
-              type="password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
-            />
-          </div>
+          {mode !== "forgot" && (
+            <div>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-gray-600">{t.passwordLabel}</label>
+                {mode === "login" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("forgot");
+                      setError(null);
+                      setInfo(null);
+                    }}
+                    className="text-[11px] text-brand-700 font-medium"
+                  >
+                    {t.forgotPasswordLink}
+                  </button>
+                )}
+              </div>
+              <input
+                type="password"
+                required
+                minLength={6}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+              />
+            </div>
+          )}
 
           {error && (
             <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
               {error}
+            </div>
+          )}
+          {info && (
+            <div className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
+              {info}
             </div>
           )}
 
@@ -130,10 +158,32 @@ export default function Login() {
             disabled={busy}
             className="w-full py-2.5 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50"
           >
-            {busy ? "…" : mode === "login" ? t.loginBtn : t.registerBtn}
+            {busy
+              ? "…"
+              : mode === "login"
+              ? t.loginBtn
+              : mode === "register"
+              ? t.registerBtn
+              : t.sendResetLink}
           </button>
+
+          {mode === "forgot" && (
+            <button
+              type="button"
+              onClick={() => {
+                setMode("login");
+                setError(null);
+                setInfo(null);
+              }}
+              className="w-full text-center text-xs text-gray-500 hover:text-gray-700"
+            >
+              ← {t.backToLogin}
+            </button>
+          )}
         </form>
 
+        {mode !== "forgot" && (
+        <>
         <div className="flex items-center gap-3 my-4">
           <div className="flex-1 h-px bg-gray-100" />
           <span className="text-[11px] text-gray-400">{t.orLabel}</span>
@@ -170,6 +220,8 @@ export default function Login() {
             </>
           )}
         </div>
+        </>
+        )}
         </div>
       </div>
     </div>

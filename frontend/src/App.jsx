@@ -4,6 +4,7 @@ import { useAuth } from "./AuthContext";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import IslamicWatermark from "./components/IslamicWatermark";
 import Login from "./components/Login";
+import ResetPassword from "./components/ResetPassword";
 import StepTabs, { STEPS } from "./components/StepTabs";
 import StepEstate from "./components/StepEstate";
 import StepDeductions from "./components/StepDeductions";
@@ -15,6 +16,9 @@ import { api } from "./api";
 function AppInner() {
   const { t } = useLang();
   const { user, loading: authLoading, logout } = useAuth();
+  const [resetToken, setResetToken] = useState(
+    () => new URLSearchParams(window.location.search).get("reset_token")
+  );
   const [stepIndex, setStepIndex] = useState(0);
   const [data, setData] = useState({
     title: "",
@@ -32,6 +36,18 @@ function AppInner() {
   const [saving, setSaving] = useState(false);
 
   const step = STEPS[stepIndex];
+
+  if (resetToken) {
+    return (
+      <ResetPassword
+        token={resetToken}
+        onDone={() => {
+          window.history.replaceState({}, "", window.location.pathname);
+          setResetToken(null);
+        }}
+      />
+    );
+  }
 
   if (authLoading) {
     return (
