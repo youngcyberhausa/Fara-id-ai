@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { LanguageProvider, useLang } from "./i18n/LanguageContext";
 import { useAuth } from "./AuthContext";
+import Logo from "./components/Logo";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import IslamicWatermark from "./components/IslamicWatermark";
 import Login from "./components/Login";
@@ -8,6 +9,9 @@ import ResetPassword from "./components/ResetPassword";
 import AboutUs from "./components/AboutUs";
 import Terms from "./components/Terms";
 import PrivacyPolicy from "./components/PrivacyPolicy";
+import Home from "./components/Home";
+import History from "./components/History";
+import Learn from "./components/Learn";
 import StepTabs, { STEPS } from "./components/StepTabs";
 import StepEstate from "./components/StepEstate";
 import StepDeductions from "./components/StepDeductions";
@@ -38,6 +42,8 @@ function AppInner() {
     window.history.pushState({}, "", "/");
     setPage("app");
   }
+  const [view, setView] = useState("home"); // "home" | "wizard" | "history" | "learn"
+  const [historyQuery, setHistoryQuery] = useState("");
   const [stepIndex, setStepIndex] = useState(0);
   const [data, setData] = useState({
     title: "",
@@ -133,6 +139,18 @@ function AppInner() {
     setResult(null);
     setSavedId(null);
     setStepIndex(0);
+    setView("wizard");
+  }
+
+  function goToHome() {
+    setView("home");
+  }
+  function goToHistory(query = "") {
+    setHistoryQuery(query);
+    setView("history");
+  }
+  function goToLearn() {
+    setView("learn");
   }
 
   return (
@@ -143,13 +161,13 @@ function AppInner() {
       <header className="border-b border-gray-100 bg-white/90 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-brand-700 text-white flex items-center justify-center font-bold text-sm">
-              F
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-gray-900 leading-tight">{t.appName}</div>
-              <div className="text-[11px] text-gray-400 leading-tight">{t.tagline}</div>
-            </div>
+            <button onClick={goToHome} className="flex items-center gap-3">
+              <Logo size={34} />
+              <div className="text-left">
+                <div className="text-sm font-semibold text-gray-900 leading-tight">{t.appName}</div>
+                <div className="text-[11px] text-gray-400 leading-tight">{t.tagline}</div>
+              </div>
+            </button>
           </div>
           <div className="flex items-center gap-3">
             <LanguageSwitcher />
@@ -166,27 +184,38 @@ function AppInner() {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 py-6">
-        {/* Hero */}
-        <div className="grid sm:grid-cols-3 gap-4">
-          <div className="sm:col-span-2 bg-gradient-to-br from-brand-700 to-brand-600 rounded-2xl p-6 text-white">
-            <span className="inline-block text-[10px] font-semibold tracking-wide bg-white/15 rounded-full px-2.5 py-1 mb-3">
-              ◆ {t.scholarAligned}
-            </span>
-            <h1 className="text-2xl font-bold leading-snug">{t.heroTitle}</h1>
-            <p className="text-sm text-white/85 mt-2 leading-relaxed">{t.heroSubtitle}</p>
-          </div>
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-5 border border-gray-100">
-            <div className="flex items-center gap-2 text-sm font-semibold text-brand-700">
-              <span>✓</span> {t.scholarBadge}
-            </div>
-            <p className="text-xs text-gray-500 mt-2 leading-relaxed">{t.scholarDesc}</p>
-          </div>
-        </div>
+        {view === "home" && (
+          <Home
+            onNewCase={handleNewCase}
+            onHistory={() => goToHistory()}
+            onLearn={goToLearn}
+            onSearch={(q) => goToHistory(q)}
+          />
+        )}
 
+        {view === "history" && (
+          <History
+            initialQuery={historyQuery}
+            onBack={goToHome}
+            onNewCase={handleNewCase}
+          />
+        )}
+
+        {view === "learn" && <Learn onBack={goToHome} />}
+
+        {view === "wizard" && (
+          <>
         {/* Wizard card */}
-        <div className="mt-5 bg-white/95 backdrop-blur-sm rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
-          <h2 className="text-base font-semibold text-gray-900">{t.newCase}</h2>
-          <p className="text-sm text-gray-500 mt-0.5">{t.newCaseDesc}</p>
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-gray-900">{t.newCase}</h2>
+              <p className="text-sm text-gray-500 mt-0.5">{t.newCaseDesc}</p>
+            </div>
+            <button onClick={goToHome} className="text-sm text-gray-500 hover:text-gray-700 shrink-0">
+              ← {t.back}
+            </button>
+          </div>
 
           <div className="mt-4">
             <StepTabs current={step} />
@@ -235,6 +264,8 @@ function AppInner() {
             )}
           </div>
         </div>
+          </>
+        )}
 
         <div className="text-center text-[11px] text-gray-400 mt-8 pb-2">
           {t.appName} · {t.tagline} · {t.scholarBadge}

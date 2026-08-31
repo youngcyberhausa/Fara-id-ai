@@ -120,6 +120,18 @@ const en = {
   footerTerms: "Terms",
   footerPrivacy: "Privacy Policy",
 
+  searchPlaceholder: "Search your saved cases…",
+  tileNewCase: "New Case",
+  tileNewCaseDesc: "Start a new inheritance calculation",
+  tileHistory: "Case History",
+  tileHistoryDesc: "View your saved cases",
+  tileEvidence: "Evidence & Proofs",
+  tileEvidenceDesc: "Qur'an & Sunnah references",
+  tileLearn: "Learn Fara'id",
+  tileLearnDesc: "Understand the rules and principles",
+  historyTitle: "Saved Cases",
+  learnTitle: "Learn About Fara'id",
+
 };
 
 const ha = {
@@ -232,6 +244,18 @@ const ha = {
   footerAbout: "Game da Mu",
   footerTerms: "Sharuɗɗa",
   footerPrivacy: "Manufar Sirri",
+
+  searchPlaceholder: "Bincika cases dinka da aka ajiye…",
+  tileNewCase: "Sabon Lissafi",
+  tileNewCaseDesc: "Fara sabon lissafin gado",
+  tileHistory: "Tarihin Lissafi",
+  tileHistoryDesc: "Duba cases dinka da aka ajiye",
+  tileEvidence: "Dalilai & Hujjoji",
+  tileEvidenceDesc: "Dalilai daga Alqur'ani da Sunnah",
+  tileLearn: "Koyi Game da Fara'id",
+  tileLearnDesc: "Fahimci ka'idoji da hukunce-hukuncen gado",
+  historyTitle: "Cases da Aka Ajiye",
+  learnTitle: "Koyi Game da Fara'id",
 
 };
 
@@ -346,6 +370,18 @@ const fr = {
   footerTerms: "Conditions",
   footerPrivacy: "Confidentialité",
 
+  searchPlaceholder: "Rechercher vos dossiers enregistrés…",
+  tileNewCase: "Nouveau Dossier",
+  tileNewCaseDesc: "Démarrer un nouveau calcul de succession",
+  tileHistory: "Historique",
+  tileHistoryDesc: "Voir vos dossiers enregistrés",
+  tileEvidence: "Preuves & Références",
+  tileEvidenceDesc: "Références du Coran et de la Sunnah",
+  tileLearn: "Apprendre le Fara'id",
+  tileLearnDesc: "Comprendre les règles et principes",
+  historyTitle: "Dossiers Enregistrés",
+  learnTitle: "Apprendre le Fara'id",
+
 };
 
 const ar = {
@@ -458,6 +494,18 @@ const ar = {
   footerAbout: "من نحن",
   footerTerms: "الشروط",
   footerPrivacy: "الخصوصية",
+
+  searchPlaceholder: "ابحث في قضاياك المحفوظة…",
+  tileNewCase: "قضية جديدة",
+  tileNewCaseDesc: "ابدأ حساب ميراث جديد",
+  tileHistory: "سجل القضايا",
+  tileHistoryDesc: "عرض قضاياك المحفوظة",
+  tileEvidence: "الأدلة والبراهين",
+  tileEvidenceDesc: "مراجع من القرآن والسنة",
+  tileLearn: "تعلّم الفرائض",
+  tileLearnDesc: "افهم القواعد والمبادئ",
+  historyTitle: "القضايا المحفوظة",
+  learnTitle: "تعلّم عن الفرائض",
 
 };
 
@@ -572,6 +620,18 @@ const yo = {
   footerTerms: "Àwọn Òfin",
   footerPrivacy: "Àṣírí",
 
+  searchPlaceholder: "Wá àwọn ẹjọ́ rẹ tí a fi pamọ́…",
+  tileNewCase: "Ẹjọ́ Tuntun",
+  tileNewCaseDesc: "Bẹ̀rẹ̀ ìṣírò ogún tuntun",
+  tileHistory: "Ìtàn Ẹjọ́",
+  tileHistoryDesc: "Wo àwọn ẹjọ́ rẹ tí a fi pamọ́",
+  tileEvidence: "Ẹ̀rí & Àwọn Ìdániloju",
+  tileEvidenceDesc: "Ẹ̀rí láti Al-Ƙur'an àti Sunnah",
+  tileLearn: "Kọ́ Nípa Fara'id",
+  tileLearnDesc: "Yeye àwọn òfin àti ìlànà",
+  historyTitle: "Àwọn Ẹjọ́ tí a Fi Pamọ́",
+  learnTitle: "Kọ́ Nípa Fara'id",
+
 };
 
 const sw = {
@@ -671,6 +731,18 @@ const sw = {
   footerAbout: "Kuhusu Sisi",
   footerTerms: "Masharti",
   footerPrivacy: "Faragha",
+
+  searchPlaceholder: "Tafuta kesi zako zilizohifadhiwa…",
+  tileNewCase: "Kesi Mpya",
+  tileNewCaseDesc: "Anza hesabu mpya ya urithi",
+  tileHistory: "Historia ya Kesi",
+  tileHistoryDesc: "Tazama kesi zako zilizohifadhiwa",
+  tileEvidence: "Ushahidi & Uthibitisho",
+  tileEvidenceDesc: "Marejeo kutoka Qur'an na Sunnah",
+  tileLearn: "Jifunze Fara'idi",
+  tileLearnDesc: "Elewa kanuni na misingi",
+  historyTitle: "Kesi Zilizohifadhiwa",
+  learnTitle: "Jifunze Kuhusu Fara'idi",
 
 };
 
@@ -772,6 +844,18 @@ const ur = {
   footerTerms: "شرائط",
   footerPrivacy: "رازداری",
 
+  searchPlaceholder: "اپنے محفوظ شدہ کیسز تلاش کریں…",
+  tileNewCase: "نیا کیس",
+  tileNewCaseDesc: "نیا وراثت حساب شروع کریں",
+  tileHistory: "کیس کی تاریخ",
+  tileHistoryDesc: "اپنے محفوظ شدہ کیسز دیکھیں",
+  tileEvidence: "دلائل و ثبوت",
+  tileEvidenceDesc: "قرآن و سنت کے حوالے",
+  tileLearn: "فرائض سیکھیں",
+  tileLearnDesc: "قواعد اور اصول سمجھیں",
+  historyTitle: "محفوظ شدہ کیسز",
+  learnTitle: "فرائض کے بارے میں سیکھیں",
+
 };
 
 const id = {
@@ -871,6 +955,18 @@ const id = {
   footerAbout: "Tentang Kami",
   footerTerms: "Syarat",
   footerPrivacy: "Privasi",
+
+  searchPlaceholder: "Cari kasus tersimpan Anda…",
+  tileNewCase: "Kasus Baru",
+  tileNewCaseDesc: "Mulai perhitungan warisan baru",
+  tileHistory: "Riwayat Kasus",
+  tileHistoryDesc: "Lihat kasus tersimpan Anda",
+  tileEvidence: "Dalil & Bukti",
+  tileEvidenceDesc: "Referensi Al-Qur'an & Sunnah",
+  tileLearn: "Pelajari Fara'id",
+  tileLearnDesc: "Pahami aturan dan prinsip",
+  historyTitle: "Kasus Tersimpan",
+  learnTitle: "Pelajari Tentang Fara'id",
 
 };
 
