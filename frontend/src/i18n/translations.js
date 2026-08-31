@@ -132,6 +132,10 @@ const en = {
   historyTitle: "Saved Cases",
   learnTitle: "Learn About Fara'id",
 
+  tileRelations: "Family Relations",
+  tileRelationsDesc: "Explore who inherits and why, in 3D",
+  relationsTitle: "How Family Relationships Affect Inheritance",
+
 };
 
 const ha = {
@@ -256,6 +260,10 @@ const ha = {
   tileLearnDesc: "Fahimci ka'idoji da hukunce-hukuncen gado",
   historyTitle: "Cases da Aka Ajiye",
   learnTitle: "Koyi Game da Fara'id",
+
+  tileRelations: "Dangantakar Iyali",
+  tileRelationsDesc: "Bincika wanene ke gaji da dalili, cikin 3D",
+  relationsTitle: "Yadda Dangantakar Iyali Take Shafar Gado",
 
 };
 
@@ -382,6 +390,10 @@ const fr = {
   historyTitle: "Dossiers Enregistrés",
   learnTitle: "Apprendre le Fara'id",
 
+  tileRelations: "Liens Familiaux",
+  tileRelationsDesc: "Découvrez qui hérite et pourquoi, en 3D",
+  relationsTitle: "Comment les Liens Familiaux Affectent l'Héritage",
+
 };
 
 const ar = {
@@ -506,6 +518,10 @@ const ar = {
   tileLearnDesc: "افهم القواعد والمبادئ",
   historyTitle: "القضايا المحفوظة",
   learnTitle: "تعلّم عن الفرائض",
+
+  tileRelations: "العلاقات الأسرية",
+  tileRelationsDesc: "استكشف من يرث ولماذا، بتقنية ثلاثية الأبعاد",
+  relationsTitle: "كيف تؤثر العلاقات الأسرية على الميراث",
 
 };
 
@@ -632,6 +648,10 @@ const yo = {
   historyTitle: "Àwọn Ẹjọ́ tí a Fi Pamọ́",
   learnTitle: "Kọ́ Nípa Fara'id",
 
+  tileRelations: "Ìbáṣepọ̀ Ìdílé",
+  tileRelationsDesc: "Ṣàwárí ẹni tí ó jogún àti ìdí rẹ̀, ní 3D",
+  relationsTitle: "Bí Ìbáṣepọ̀ Ìdílé Ṣe Ń Kan Ogún",
+
 };
 
 const sw = {
@@ -743,6 +763,10 @@ const sw = {
   tileLearnDesc: "Elewa kanuni na misingi",
   historyTitle: "Kesi Zilizohifadhiwa",
   learnTitle: "Jifunze Kuhusu Fara'idi",
+
+  tileRelations: "Uhusiano wa Familia",
+  tileRelationsDesc: "Chunguza nani anarithi na kwa nini, kwa 3D",
+  relationsTitle: "Jinsi Uhusiano wa Familia Unavyoathiri Urithi",
 
 };
 
@@ -856,6 +880,10 @@ const ur = {
   historyTitle: "محفوظ شدہ کیسز",
   learnTitle: "فرائض کے بارے میں سیکھیں",
 
+  tileRelations: "خاندانی رشتے",
+  tileRelationsDesc: "3D میں دیکھیں کون وارث ہے اور کیوں",
+  relationsTitle: "خاندانی رشتے وراثت پر کیسے اثر ڈالتے ہیں",
+
 };
 
 const id = {
@@ -967,6 +995,10 @@ const id = {
   tileLearnDesc: "Pahami aturan dan prinsip",
   historyTitle: "Kasus Tersimpan",
   learnTitle: "Pelajari Tentang Fara'id",
+
+  tileRelations: "Hubungan Keluarga",
+  tileRelationsDesc: "Jelajahi siapa yang mewarisi dan mengapa, dalam 3D",
+  relationsTitle: "Bagaimana Hubungan Keluarga Mempengaruhi Warisan",
 
 };
 

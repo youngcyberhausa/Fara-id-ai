@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { LanguageProvider, useLang } from "./i18n/LanguageContext";
 import { useAuth } from "./AuthContext";
 import Logo from "./components/Logo";
@@ -12,6 +12,7 @@ import PrivacyPolicy from "./components/PrivacyPolicy";
 import Home from "./components/Home";
 import History from "./components/History";
 import Learn from "./components/Learn";
+const FamilyRelations = lazy(() => import("./components/FamilyRelations"));
 import StepTabs, { STEPS } from "./components/StepTabs";
 import StepEstate from "./components/StepEstate";
 import StepDeductions from "./components/StepDeductions";
@@ -42,7 +43,7 @@ function AppInner() {
     window.history.pushState({}, "", "/");
     setPage("app");
   }
-  const [view, setView] = useState("home"); // "home" | "wizard" | "history" | "learn"
+  const [view, setView] = useState("home"); // "home" | "wizard" | "history" | "learn" | "relations"
   const [historyQuery, setHistoryQuery] = useState("");
   const [stepIndex, setStepIndex] = useState(0);
   const [data, setData] = useState({
@@ -152,6 +153,9 @@ function AppInner() {
   function goToLearn() {
     setView("learn");
   }
+  function goToRelations() {
+    setView("relations");
+  }
 
   return (
     <div className="min-h-screen relative">
@@ -189,8 +193,15 @@ function AppInner() {
             onNewCase={handleNewCase}
             onHistory={() => goToHistory()}
             onLearn={goToLearn}
+            onRelations={goToRelations}
             onSearch={(q) => goToHistory(q)}
           />
+        )}
+
+        {view === "relations" && (
+          <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
+            <FamilyRelations onBack={goToHome} />
+          </Suspense>
         )}
 
         {view === "history" && (
