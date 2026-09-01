@@ -13,6 +13,11 @@ if _raw_url:
     # (Railway included, historically) hand out "postgres://".
     if _raw_url.startswith("postgres://"):
         _raw_url = _raw_url.replace("postgres://", "postgresql://", 1)
+    # Use the psycopg (v3) driver explicitly — it has prebuilt wheels for
+    # modern Python versions, unlike psycopg2 which can fail to build from
+    # source on newer interpreters (e.g. Python 3.13).
+    if _raw_url.startswith("postgresql://"):
+        _raw_url = _raw_url.replace("postgresql://", "postgresql+psycopg://", 1)
     DATABASE_URL = _raw_url
     engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 else:
