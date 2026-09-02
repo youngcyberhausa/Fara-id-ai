@@ -13,6 +13,7 @@ import Home from "./components/Home";
 import History from "./components/History";
 import Learn from "./components/Learn";
 const FamilyRelations = lazy(() => import("./components/FamilyRelations"));
+const IntroSplash = lazy(() => import("./components/IntroSplash"));
 import StepTabs, { STEPS } from "./components/StepTabs";
 import StepEstate from "./components/StepEstate";
 import StepDeductions from "./components/StepDeductions";
@@ -24,6 +25,7 @@ import { api } from "./api";
 function AppInner() {
   const { t } = useLang();
   const { user, loading: authLoading, logout } = useAuth();
+  const [showSplash, setShowSplash] = useState(true);
   const [resetToken, setResetToken] = useState(
     () => new URLSearchParams(window.location.search).get("reset_token")
   );
@@ -62,6 +64,25 @@ function AppInner() {
   const [saving, setSaving] = useState(false);
 
   const step = STEPS[stepIndex];
+
+  if (showSplash) {
+    return (
+      <Suspense
+        fallback={
+          <div className="fixed inset-0 z-50 bg-[#020806] flex items-center justify-center">
+            <div
+              className="text-2xl font-bold animate-pulse"
+              style={{ color: "#d9b65c", letterSpacing: "6px" }}
+            >
+              FARA'ID AI
+            </div>
+          </div>
+        }
+      >
+        <IntroSplash onFinish={() => setShowSplash(false)} />
+      </Suspense>
+    );
+  }
 
   if (page === "about") return <AboutUs onBack={goHome} />;
   if (page === "terms") return <Terms onBack={goHome} />;
@@ -279,7 +300,7 @@ function AppInner() {
         )}
 
         <div className="text-center text-[11px] text-gray-400 mt-8 pb-2">
-          {t.appName} · {t.tagline} · {t.scholarBadge}
+          {t.appName} · {t.scholarBadge}
         </div>
         <div className="flex items-center justify-center gap-4 text-[11px] text-gray-400 pb-6">
           <button onClick={() => navigate("/about", "about")} className="hover:text-gray-600">
