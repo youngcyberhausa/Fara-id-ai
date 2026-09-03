@@ -3,15 +3,18 @@ import { LanguageProvider, useLang } from "./i18n/LanguageContext";
 import { useAuth } from "./AuthContext";
 import Logo from "./components/Logo";
 import LanguageSwitcher from "./components/LanguageSwitcher";
+import ThemeToggle from "./components/ThemeToggle";
 import IslamicWatermark from "./components/IslamicWatermark";
 import Login from "./components/Login";
 import ResetPassword from "./components/ResetPassword";
 import AboutUs from "./components/AboutUs";
 import Terms from "./components/Terms";
 import PrivacyPolicy from "./components/PrivacyPolicy";
+import Disclaimer from "./components/Disclaimer";
 import Home from "./components/Home";
 import History from "./components/History";
 import Learn from "./components/Learn";
+import ChatWidget from "./components/ChatWidget";
 const FamilyRelations = lazy(() => import("./components/FamilyRelations"));
 const IntroSplash = lazy(() => import("./components/IntroSplash"));
 import StepTabs, { STEPS } from "./components/StepTabs";
@@ -34,6 +37,7 @@ function AppInner() {
     if (p === "/about") return "about";
     if (p === "/terms") return "terms";
     if (p === "/privacy") return "privacy";
+    if (p === "/disclaimer") return "disclaimer";
     return "app";
   });
 
@@ -87,6 +91,7 @@ function AppInner() {
   if (page === "about") return <AboutUs onBack={goHome} />;
   if (page === "terms") return <Terms onBack={goHome} />;
   if (page === "privacy") return <PrivacyPolicy onBack={goHome} />;
+  if (page === "disclaimer") return <Disclaimer onBack={goHome} />;
 
   if (resetToken) {
     return (
@@ -195,6 +200,7 @@ function AppInner() {
             </button>
           </div>
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <LanguageSwitcher />
             {user && (
               <button
@@ -314,8 +320,14 @@ function AppInner() {
           <button onClick={() => navigate("/privacy", "privacy")} className="hover:text-gray-600">
             {t.footerPrivacy}
           </button>
+          <span>·</span>
+          <button onClick={() => navigate("/disclaimer", "disclaimer")} className="hover:text-gray-600">
+            {t.footerDisclaimer}
+          </button>
         </div>
       </main>
+
+      {user && <ChatWidget />}
     </div>
   );
 }

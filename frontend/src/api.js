@@ -85,3 +85,12 @@ export const authApi = {
       body: JSON.stringify({ token, new_password: newPassword }),
     }).then(handle),
 };
+
+export const supportApi = {
+  chat: (message, history) =>
+    fetch(`${BASE_URL}/support/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ message, history }),
+    }).then(handle),
+};

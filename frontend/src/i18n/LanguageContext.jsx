@@ -4,7 +4,7 @@ import { LANGUAGES, TRANSLATIONS } from "./translations";
 const LanguageContext = createContext(null);
 
 export function LanguageProvider({ children }) {
-  const [lang, setLang] = useState(() => localStorage.getItem("faraid_lang") || "ha");
+  const [lang, setLang] = useState(() => localStorage.getItem("faraid_lang") || "en");
 
   useEffect(() => {
     localStorage.setItem("faraid_lang", lang);

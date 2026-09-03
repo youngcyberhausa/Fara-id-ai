@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-brand-50: #ecfdf3;
   --color-brand-100: #d1fae0;
@@ -18,8 +20,47 @@ html, body, #root {
 body {
   font-family: var(--font-sans);
   background: #f4f7f5;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 [dir="rtl"] {
   direction: rtl;
 }
+
+/* ---- Dark mode: global overrides for the neutral palette ----
+   Rather than editing every component, we flip the standard gray/white
+   utility classes used throughout the app whenever the .dark class is
+   present on <html>. Brand greens and semantic colors (red/amber/emerald
+   boxes) are left as-is since they remain legible on a dark background. */
+.dark body { background: #0b0f0d; }
+
+.dark .bg-white,
+.dark .bg-white\/95,
+.dark .bg-white\/90 { background-color: #111827 !important; }
+
+.dark .bg-gray-50 { background-color: #0b0f0d !important; }
+.dark .bg-gray-100 { background-color: #1f2937 !important; }
+
+.dark .text-gray-900 { color: #f3f4f6 !important; }
+.dark .text-gray-800 { color: #e5e7eb !important; }
+.dark .text-gray-700 { color: #d1d5db !important; }
+.dark .text-gray-600 { color: #b0b8c1 !important; }
+.dark .text-gray-500 { color: #9ca3af !important; }
+.dark .text-gray-400 { color: #6b7280 !important; }
+
+.dark .border-gray-50,
+.dark .border-gray-100 { border-color: #1f2937 !important; }
+.dark .border-gray-200 { border-color: #374151 !important; }
+
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #1f2937 !important;
+  color: #f3f4f6 !important;
+  border-color: #374151 !important;
+}
+
+.dark ::placeholder { color: #6b7280 !important; }
+
+.dark .shadow-sm,
+.dark .shadow-md { box-shadow: 0 1px 3px rgba(0,0,0,0.5) !important; }

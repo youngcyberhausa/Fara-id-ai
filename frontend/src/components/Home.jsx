@@ -1,9 +1,28 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLang } from "../i18n/LanguageContext";
+import { useAuth } from "../AuthContext";
+import { api } from "../api";
 
 export default function Home({ onNewCase, onHistory, onLearn, onRelations, onSearch }) {
   const { t } = useLang();
+  const { user } = useAuth();
   const [query, setQuery] = useState("");
+  const [caseCount, setCaseCount] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .listCases()
+      .then((data) => {
+        if (!cancelled) setCaseCount(data.length);
+      })
+      .catch(() => {
+        if (!cancelled) setCaseCount(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function submitSearch(e) {
     e.preventDefault();
@@ -12,6 +31,25 @@ export default function Home({ onNewCase, onHistory, onLearn, onRelations, onSea
 
   return (
     <div>
+      {/* Welcome */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <div className="text-lg font-semibold text-gray-900">
+            {t.welcomeBack}{user?.name ? `, ${user.name.split(" ")[0]}` : ""} 👋
+          </div>
+          <div className="text-xs text-gray-400 mt-0.5">{user?.email}</div>
+        </div>
+        {caseCount !== null && (
+          <button
+            onClick={onHistory}
+            className="text-center bg-white border border-gray-100 rounded-xl px-4 py-2 shadow-sm hover:border-brand-200"
+          >
+            <div className="text-lg font-bold text-brand-700 leading-none">{caseCount}</div>
+            <div className="text-[10px] text-gray-400 mt-1">{t.tileHistory}</div>
+          </button>
+        )}
+      </div>
+
       {/* Hero */}
       <div className="bg-gradient-to-br from-brand-700 to-brand-600 rounded-2xl p-6 text-white">
         <span className="inline-block text-[10px] font-semibold tracking-wide bg-white/15 rounded-full px-2.5 py-1 mb-3">

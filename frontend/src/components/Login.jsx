@@ -3,6 +3,8 @@ import { useLang } from "../i18n/LanguageContext";
 import { useAuth } from "../AuthContext";
 import { authApi } from "../api";
 import LanguageSwitcher from "./LanguageSwitcher";
+import ThemeToggle from "./ThemeToggle";
+import Logo from "./Logo";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
@@ -70,14 +72,13 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
       <div className="w-full max-w-sm">
-        <div className="flex justify-end mb-3">
+        <div className="flex justify-end gap-2 mb-3">
+          <ThemeToggle />
           <LanguageSwitcher />
         </div>
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-full bg-brand-700 text-white flex items-center justify-center font-bold">
-            F
-          </div>
+          <Logo size={38} />
           <div>
             <div className="text-sm font-semibold text-gray-900">{t.appName}</div>
             <div className="text-[11px] text-gray-400">{t.tagline}</div>
@@ -229,6 +230,8 @@ export default function Login() {
           <a href="/terms" className="hover:text-gray-600">{t.footerTerms}</a>
           <span>·</span>
           <a href="/privacy" className="hover:text-gray-600">{t.footerPrivacy}</a>
+          <span>·</span>
+          <a href="/disclaimer" className="hover:text-gray-600">{t.footerDisclaimer}</a>
         </div>
       </div>
     </div>

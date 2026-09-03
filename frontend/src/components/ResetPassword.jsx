@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLang } from "../i18n/LanguageContext";
 import { authApi } from "../api";
 import LanguageSwitcher from "./LanguageSwitcher";
+import Logo from "./Logo";
 
 export default function ResetPassword({ token, onDone }) {
   const { t } = useLang();
@@ -32,9 +33,7 @@ export default function ResetPassword({ token, onDone }) {
         </div>
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
           <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 rounded-full bg-brand-700 text-white flex items-center justify-center font-bold">
-              F
-            </div>
+            <Logo size={38} />
             <div>
               <div className="text-sm font-semibold text-gray-900">{t.appName}</div>
               <div className="text-[11px] text-gray-400">{t.tagline}</div>
