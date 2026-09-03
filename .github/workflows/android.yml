@@ -2,9 +2,11 @@ name: Build Android App
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -18,9 +20,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          node-version: '22'
 
       - name: Install frontend dependencies
         working-directory: frontend
@@ -28,11 +28,7 @@ jobs:
 
       - name: Build web app
         working-directory: frontend
-        run: npm run build      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
+        run: npm run build
 
       - name: Sync Capacitor Android
         working-directory: frontend
@@ -41,8 +37,8 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: temurin          java-version: '21'
-        
+          distribution: temurin
+          java-version: '21'
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
