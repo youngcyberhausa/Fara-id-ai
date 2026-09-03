@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Fara\'id AI</string>
+    <string name="title_activity_main">Fara\'id AI</string>
+    <string name="package_name">ai.faraid.app</string>
+    <string name="custom_url_scheme">ai.faraid.app</string>
+</resources>
