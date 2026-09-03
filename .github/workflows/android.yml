@@ -28,7 +28,11 @@ jobs:
 
       - name: Build web app
         working-directory: frontend
-        run: npm run build
+        run: npm run build      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
 
       - name: Sync Capacitor Android
         working-directory: frontend
@@ -37,9 +41,8 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: '21'
-          cache: gradle
+          distribution: temurin          java-version: '21'
+        
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
