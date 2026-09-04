@@ -70,6 +70,21 @@ jobs:
             -Pandroid.injected.signing.key.password="$KEY_PASSWORD" \
             --no-daemon
 
+      - name: Build signed Release APK
+        working-directory: frontend/android
+        env:
+          KEYSTORE_FILE: ${{ github.workspace }}/faraid-release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file="$KEYSTORE_FILE" \
+            -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
+            -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$KEY_PASSWORD" \
+            --no-daemon
+
       - name: Upload Release AAB
         uses: actions/upload-artifact@v4
         with:
@@ -82,7 +97,21 @@ jobs:
         with:
           name: faraid-ai-release-apk
           path: frontend/android/app/build/outputs/apk/release/app-release.apk
-          if-no-files-found: warn
+          if-no-files-found: error
+
+      - name: Publish APK to GitHub Release
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete latest --yes || true
+          git tag -f latest
+          git push origin latest --force
+          gh release create latest \
+            frontend/android/app/build/outputs/apk/release/app-release.apk \
+            --title "Fara'id AI — Latest Android Build" \
+            --notes "Automatically built from the latest main branch. Download app-release.apk and install it on your Android device (enable 'install from unknown sources' if prompted)." \
+            --latest
 
       - name: Clean signing keystore
         if: always()

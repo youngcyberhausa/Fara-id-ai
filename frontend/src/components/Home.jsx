@@ -35,7 +35,7 @@ export default function Home({ onNewCase, onHistory, onLearn, onRelations, onSea
       <div className="flex items-center justify-between mb-4">
         <div>
           <div className="text-lg font-semibold text-gray-900">
-            {t.welcomeBack}{user?.name ? `, ${user.name.split(" ")[0]}` : ""} 👋
+            {t.welcomeBack} 👋
           </div>
           <div className="text-xs text-gray-400 mt-0.5">{user?.email}</div>
         </div>
@@ -49,6 +49,23 @@ export default function Home({ onNewCase, onHistory, onLearn, onRelations, onSea
           </button>
         )}
       </div>
+
+      {/* Android download banner */}
+      <a
+        href="https://github.com/youngcyberhausa/Fara-id-ai/releases/download/latest/app-release.apk"
+        className="flex items-center gap-3 bg-gray-900 text-white rounded-2xl px-4 py-3.5 mb-4 hover:bg-gray-800 transition"
+      >
+        <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center text-lg shrink-0">
+          📱
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold">{t.downloadAndroid}</div>
+          <div className="text-[11px] text-white/60 truncate">{t.downloadAndroidDesc}</div>
+        </div>
+        <div className="text-xs font-medium bg-white/15 rounded-full px-3 py-1.5 shrink-0">
+          {t.downloadBtn}
+        </div>
+      </a>
 
       {/* Hero */}
       <div className="bg-gradient-to-br from-brand-700 to-brand-600 rounded-2xl p-6 text-white">

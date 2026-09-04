@@ -158,6 +158,9 @@ const en = {
   chatError: "Something went wrong. Please try again.",
   chatDisclaimer: "General guidance only — no access to your saved data.",
 
+  downloadAndroid: "Get the Android App",
+  downloadAndroidDesc: "Install Fara'id AI directly on your phone — no Play Store needed.",
+  downloadBtn: "Download APK",
 };
 
 const ha = {
@@ -297,6 +300,9 @@ const ha = {
   chatError: "Wani abu ya faru ba daidai ba. Ka sake gwadawa.",
   chatDisclaimer: "Jagora ta gabadaya kawai — babu damar ganin bayananka da aka ajiye.",
 
+  downloadAndroid: "Sauke Android App",
+  downloadAndroidDesc: "Shigar da Fara'id AI kai tsaye a wayarka — babu bukatar Play Store.",
+  downloadBtn: "Sauke APK",
 };
 
 const fr = {
@@ -436,6 +442,9 @@ const fr = {
   chatError: "Une erreur s'est produite. Veuillez réessayer.",
   chatDisclaimer: "Conseils généraux uniquement — aucun accès à vos données enregistrées.",
 
+  downloadAndroid: "Obtenir l'application Android",
+  downloadAndroidDesc: "Installez Fara'id AI directement sur votre téléphone — sans Play Store.",
+  downloadBtn: "Télécharger l'APK",
 };
 
 const ar = {
@@ -575,6 +584,9 @@ const ar = {
   chatError: "حدث خطأ ما. حاول مرة أخرى.",
   chatDisclaimer: "إرشادات عامة فقط — لا وصول إلى بياناتك المحفوظة.",
 
+  downloadAndroid: "احصل على تطبيق أندرويد",
+  downloadAndroidDesc: "ثبّت Fara'id AI مباشرة على هاتفك — دون الحاجة إلى متجر Play.",
+  downloadBtn: "تنزيل APK",
 };
 
 const yo = {
@@ -714,6 +726,9 @@ const yo = {
   chatError: "Nkankan sele. Jowo gbiyanju leekansi.",
   chatDisclaimer: "Amona gbogbogbo nikan — ko si iwoye si data ti a fi pamo.",
 
+  downloadAndroid: "Gba App Android",
+  downloadAndroidDesc: "Fi Fara'id AI sori fóònù rẹ tààrà — láìsí Play Store.",
+  downloadBtn: "Gba APK",
 };
 
 const sw = {
@@ -840,6 +855,9 @@ const sw = {
   chatError: "Hitilafu imetokea. Tafadhali jaribu tena.",
   chatDisclaimer: "Mwongozo wa jumla tu — hakuna ufikiaji wa data yako iliyohifadhiwa.",
 
+  downloadAndroid: "Pata Programu ya Android",
+  downloadAndroidDesc: "Sakinisha Fara'id AI moja kwa moja kwenye simu yako — hakuna haja ya Play Store.",
+  downloadBtn: "Pakua APK",
 };
 
 const ur = {
@@ -966,6 +984,9 @@ const ur = {
   chatError: "کچھ غلط ہوا۔ دوبارہ کوشش کریں۔",
   chatDisclaimer: "صرف عمومی رہنمائی — آپ کے محفوظ شدہ ڈیٹا تک کوئی رسائی نہیں۔",
 
+  downloadAndroid: "اینڈرائیڈ ایپ حاصل کریں",
+  downloadAndroidDesc: "Fara'id AI براہ راست اپنے فون پر انسٹال کریں — Play Store کی ضرورت نہیں۔",
+  downloadBtn: "APK ڈاؤن لوڈ کریں",
 };
 
 const id = {
@@ -1092,6 +1113,9 @@ const id = {
   chatError: "Terjadi kesalahan. Silakan coba lagi.",
   chatDisclaimer: "Hanya panduan umum — tidak ada akses ke data tersimpan Anda.",
 
+  downloadAndroid: "Dapatkan Aplikasi Android",
+  downloadAndroidDesc: "Instal Fara'id AI langsung di ponsel Anda — tanpa perlu Play Store.",
+  downloadBtn: "Unduh APK",
 };
 
 const es = {
