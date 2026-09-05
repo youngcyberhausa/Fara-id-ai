@@ -94,6 +94,21 @@ export default function IntroSplash({ onFinish }) {
     }
     logo.add(geometryGroup);
 
+    // Pedestal / base the medallion sits on
+    const pedestalTop = new THREE.Mesh(
+      new THREE.CylinderGeometry(2.5, 2.65, 0.22, 64),
+      goldMaterial
+    );
+    pedestalTop.position.y = -2.55;
+    scene.add(pedestalTop);
+
+    const pedestalBase = new THREE.Mesh(
+      new THREE.CylinderGeometry(2.9, 3.1, 0.3, 64),
+      greenMaterial
+    );
+    pedestalBase.position.y = -2.85;
+    scene.add(pedestalBase);
+
     // Big "F" symbol
     const FShape = new THREE.Shape();
     FShape.moveTo(-0.55, -0.85);

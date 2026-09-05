@@ -42,33 +42,29 @@ export default function Logo({ size = 40 }) {
         opacity="0.85"
       />
 
+      {/* Gem accents at each outer star tip */}
+      <polygon points="32.00,2.40 34.60,5.00 32.00,7.60 29.40,5.00" fill="url(#faraidGoldGrad)" stroke="#8a6a1f" strokeWidth="0.3" />
+      <polygon points="51.09,10.31 53.69,12.91 51.09,15.51 48.49,12.91" fill="url(#faraidGoldGrad)" stroke="#8a6a1f" strokeWidth="0.3" />
+      <polygon points="59.00,29.40 61.60,32.00 59.00,34.60 56.40,32.00" fill="url(#faraidGoldGrad)" stroke="#8a6a1f" strokeWidth="0.3" />
+      <polygon points="51.09,48.49 53.69,51.09 51.09,53.69 48.49,51.09" fill="url(#faraidGoldGrad)" stroke="#8a6a1f" strokeWidth="0.3" />
+      <polygon points="32.00,56.40 34.60,59.00 32.00,61.60 29.40,59.00" fill="url(#faraidGoldGrad)" stroke="#8a6a1f" strokeWidth="0.3" />
+      <polygon points="12.91,48.49 15.51,51.09 12.91,53.69 10.31,51.09" fill="url(#faraidGoldGrad)" stroke="#8a6a1f" strokeWidth="0.3" />
+      <polygon points="5.00,29.40 7.60,32.00 5.00,34.60 2.40,32.00" fill="url(#faraidGoldGrad)" stroke="#8a6a1f" strokeWidth="0.3" />
+      <polygon points="12.91,10.31 15.51,12.91 12.91,15.51 10.31,12.91" fill="url(#faraidGoldGrad)" stroke="#8a6a1f" strokeWidth="0.3" />
+
+      {/* Decorative ring around medallion */}
+      <circle cx="32" cy="32" r="18.5" fill="none" stroke="url(#faraidGoldGrad)" strokeWidth="0.6" opacity="0.7" />
+
       {/* Center medallion */}
       <circle cx="32" cy="32" r="15.5" fill="url(#faraidGreenGrad)" stroke="url(#faraidGoldGrad)" strokeWidth="1.8" />
       <circle cx="32" cy="32" r="15.5" fill="url(#faraidSheen)" />
       <circle cx="32" cy="32" r="12.3" fill="none" stroke="#d9b65c" strokeWidth="0.5" opacity="0.55" />
 
       {/* Faux-3D F */}
-      <text
-        x="32.6"
-        y="38.3"
-        textAnchor="middle"
-        fontFamily="Georgia, 'Times New Roman', serif"
-        fontSize="18"
-        fontWeight="700"
-        fill="#04200f"
-        opacity="0.55"
-      >
+      <text x="32.6" y="38.3" textAnchor="middle" fontFamily="Georgia, 'Times New Roman', serif" fontSize="18" fontWeight="700" fill="#04200f" opacity="0.55">
         F
       </text>
-      <text
-        x="32"
-        y="37.6"
-        textAnchor="middle"
-        fontFamily="Georgia, 'Times New Roman', serif"
-        fontSize="18"
-        fontWeight="700"
-        fill="url(#faraidGoldGrad)"
-      >
+      <text x="32" y="37.6" textAnchor="middle" fontFamily="Georgia, 'Times New Roman', serif" fontSize="18" fontWeight="700" fill="url(#faraidGoldGrad)">
         F
       </text>
     </svg>
