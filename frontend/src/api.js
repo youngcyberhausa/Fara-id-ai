@@ -94,3 +94,16 @@ export const supportApi = {
       body: JSON.stringify({ message, history }),
     }).then(handle),
 };
+
+export const paymentsApi = {
+  initialize: () =>
+    fetch(`${BASE_URL}/payments/initialize`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+    }).then(handle),
+
+  verify: (reference) =>
+    fetch(`${BASE_URL}/payments/verify/${reference}`, {
+      headers: authHeaders(),
+    }).then(handle),
+};

@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Float, DateTime, JSON, ForeignKey
+from sqlalchemy import Column, String, Float, DateTime, JSON, ForeignKey, Boolean
 from .database import Base
 
 
@@ -19,7 +19,26 @@ class User(Base):
     google_sub = Column(String, unique=True, nullable=True, index=True)
     reset_token = Column(String, nullable=True, index=True)
     reset_token_expires = Column(DateTime, nullable=True)
+
+    # Premium subscription (Paystack)
+    is_premium = Column(Boolean, default=False)
+    premium_expires_at = Column(DateTime, nullable=True)
+    paystack_customer_code = Column(String, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Payment(Base):
+    """A Paystack payment transaction record."""
+    __tablename__ = "payments"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    reference = Column(String, unique=True, index=True, nullable=False)
+    amount_kobo = Column(Float, nullable=False)  # amount in kobo (NGN * 100)
+    status = Column(String, default="pending")  # pending | success | failed
+    created_at = Column(DateTime, default=datetime.utcnow)
+    verified_at = Column(DateTime, nullable=True)
 
 
 class Case(Base):
@@ -46,6 +65,9 @@ class Case(Base):
 
     # Step 5 - Result (stored as JSON for quick recall, recomputed on demand too)
     result = Column(JSON, nullable=True)
+
+    # Family Sharing: a public read-only token, set when the user enables sharing
+    share_token = Column(String, unique=True, nullable=True, index=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

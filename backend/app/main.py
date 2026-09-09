@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from . import models
 from .database import engine
-from .routers import cases, auth, support
+from .routers import cases, auth, support, payments
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -20,6 +20,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(cases.router)
 app.include_router(support.router)
+app.include_router(payments.router)
 
 
 @app.get("/api/health")

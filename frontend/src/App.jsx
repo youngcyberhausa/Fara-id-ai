@@ -1,9 +1,10 @@
-import { useState, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { LanguageProvider, useLang } from "./i18n/LanguageContext";
 import { useAuth } from "./AuthContext";
 import Logo from "./components/Logo";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import ThemeToggle from "./components/ThemeToggle";
+import { initAds } from "./ads.js";
 import IslamicWatermark from "./components/IslamicWatermark";
 import Login from "./components/Login";
 import ResetPassword from "./components/ResetPassword";
@@ -12,6 +13,7 @@ import Terms from "./components/Terms";
 import PrivacyPolicy from "./components/PrivacyPolicy";
 import Disclaimer from "./components/Disclaimer";
 import Home from "./components/Home";
+import Premium from "./components/Premium";
 import History from "./components/History";
 import Learn from "./components/Learn";
 import ChatWidget from "./components/ChatWidget";
@@ -28,7 +30,31 @@ import { api } from "./api";
 function AppInner() {
   const { t } = useLang();
   const { user, loading: authLoading, logout } = useAuth();
+
+  // Initialize native ads (AdMob) once auth has resolved, skipping entirely
+  // for premium subscribers. No-ops on web automatically (see ads.js).
+  useEffect(() => {
+    if (authLoading) return;
+    const isPremium =
+      user?.is_premium && (!user.premium_expires_at || new Date(user.premium_expires_at) > new Date());
+    initAds(isPremium);
+  }, [authLoading, user]);
   const [showSplash, setShowSplash] = useState(true);
+
+  // Load the AdSense script once, only when a publisher client ID is
+  // configured (VITE_ADSENSE_CLIENT). No-ops silently otherwise.
+  useEffect(() => {
+    const client = import.meta.env.VITE_ADSENSE_CLIENT;
+    if (!client) return;
+    if (document.querySelector("script[data-adsbygoogle]")) return;
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${client}`;
+    script.crossOrigin = "anonymous";
+    script.dataset.adsbygoogle = "true";
+    document.head.appendChild(script);
+  }, []);
+
   const [resetToken, setResetToken] = useState(
     () => new URLSearchParams(window.location.search).get("reset_token")
   );
@@ -182,6 +208,9 @@ function AppInner() {
   function goToRelations() {
     setView("relations");
   }
+  function goToPremium() {
+    setView("premium");
+  }
 
   return (
     <div className="min-h-screen relative">
@@ -221,9 +250,12 @@ function AppInner() {
             onHistory={() => goToHistory()}
             onLearn={goToLearn}
             onRelations={goToRelations}
+            onPremium={goToPremium}
             onSearch={(q) => goToHistory(q)}
           />
         )}
+
+        {view === "premium" && <Premium onBack={goToHome} />}
 
         {view === "relations" && (
           <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>

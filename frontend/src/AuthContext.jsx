@@ -82,9 +82,19 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    if (!token) return;
+    try {
+      const u = await authApi.me();
+      setUser(u);
+    } catch {
+      // ignore — token may have expired, next request will handle it
+    }
+  }, [token]);
+
   return (
     <AuthContext.Provider
-      value={{ token, user, loading, register, login, loginWithGoogle, logout }}
+      value={{ token, user, loading, register, login, loginWithGoogle, logout, refreshUser }}
     >
       {children}
     </AuthContext.Provider>
