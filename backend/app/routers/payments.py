@@ -16,7 +16,7 @@ from ..deps import get_current_user
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
 PAYSTACK_SECRET_KEY = os.environ.get("PAYSTACK_SECRET_KEY")
-PREMIUM_MONTHLY_PRICE_KOBO = int(os.environ.get("PREMIUM_MONTHLY_PRICE_KOBO", "150000"))  # ₦1,500 default
+PREMIUM_MONTHLY_PRICE_KOBO = int(os.environ.get("PREMIUM_MONTHLY_PRICE_KOBO", "30000"))  # ₦300 default
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 PAYSTACK_BASE = "https://api.paystack.co"
 
@@ -45,6 +45,7 @@ async def initialize_payment(
                 "amount": PREMIUM_MONTHLY_PRICE_KOBO,
                 "reference": reference,
                 "currency": "NGN",
+                "channels": ["card", "bank", "ussd", "mobile_money", "bank_transfer", "qr"],
                 "callback_url": f"{FRONTEND_URL}?payment=callback",
                 "metadata": {"user_id": user.id, "purpose": "premium_monthly"},
             },

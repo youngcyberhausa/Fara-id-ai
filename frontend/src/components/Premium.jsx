@@ -102,7 +102,7 @@ export default function Premium({ onBack }) {
         <>
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 text-center">
             <div className="text-3xl font-bold text-gray-900">
-              ₦1,500<span className="text-sm font-normal text-gray-400">/{t.premPerMonth}</span>
+              ₦300<span className="text-sm font-normal text-gray-400">/{t.premPerMonth}</span>
             </div>
             {error && (
               <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mt-3">
