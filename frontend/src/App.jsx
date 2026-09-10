@@ -76,6 +76,7 @@ function AppInner() {
     setPage("app");
   }
   const [view, setView] = useState("home"); // "home" | "wizard" | "history" | "learn" | "relations"
+  const [menuOpen, setMenuOpen] = useState(false);
   const [historyQuery, setHistoryQuery] = useState("");
   const [stepIndex, setStepIndex] = useState(0);
   const [data, setData] = useState({
@@ -234,12 +235,50 @@ function AppInner() {
             <ThemeToggle />
             <LanguageSwitcher />
             {user && (
-              <button
-                onClick={logout}
-                className="text-xs text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5"
-              >
-                {t.logout}
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setMenuOpen((v) => !v)}
+                  className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
+                  aria-label="Menu"
+                >
+                  ☰
+                </button>
+                {menuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl border border-gray-100 shadow-lg z-20 overflow-hidden">
+                      <button
+                        onClick={() => {
+                          setMenuOpen(false);
+                          goToPremium();
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        👑 {t.tilePremium}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setMenuOpen(false);
+                          goToHistory();
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        ⏱ {t.tileHistory}
+                      </button>
+                      <div className="border-t border-gray-100" />
+                      <button
+                        onClick={() => {
+                          setMenuOpen(false);
+                          logout();
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                      >
+                        ↪ {t.logout}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             )}
           </div>
         </div>
