@@ -4,7 +4,7 @@ import { useAuth } from "./AuthContext";
 import Logo from "./components/Logo";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import ThemeToggle from "./components/ThemeToggle";
-import { initAds } from "./ads.js";
+import { initAds, maybeShowInterstitial } from "./ads.js";
 import IslamicWatermark from "./components/IslamicWatermark";
 import Login from "./components/Login";
 import ResetPassword from "./components/ResetPassword";
@@ -152,6 +152,7 @@ function AppInner() {
         const payload = { ...data, heirs };
         const res = await api.calculate(payload);
         setResult(res);
+        maybeShowInterstitial();
       } catch (e) {
         setError(e.message);
       } finally {
@@ -172,6 +173,7 @@ function AppInner() {
       const payload = { ...data, heirs };
       const res = await api.createCase(payload);
       setSavedId(res.id);
+      maybeShowInterstitial();
     } catch (e) {
       setError(e.message);
     } finally {
