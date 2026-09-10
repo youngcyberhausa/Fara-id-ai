@@ -41,8 +41,10 @@ export async function initAds(isPremium = false) {
     const { AdMob, BannerAdPosition, BannerAdSize } = mod;
 
     await AdMob.initialize({
-      // Set to false once you're ready to serve real ads to real users.
-      initializeForTesting: true,
+      // Real ads now that you have live ad unit IDs configured. Never tap
+      // your own live ads afterwards — Google can suspend the account for
+      // "invalid clicks" if you do.
+      initializeForTesting: false,
     });
 
     const bannerId = import.meta.env.VITE_ADMOB_BANNER_ID || TEST_BANNER_ID;
