@@ -4,7 +4,7 @@ import { useAuth } from "../AuthContext";
 import { api } from "../api";
 import AdBanner from "./AdBanner";
 
-export default function Home({ onNewCase, onHistory, onLearn, onRelations, onSearch }) {
+export default function Home({ onNewCase, onHistory, onLearn, onRelations, onZakat, onSearch }) {
   const { t } = useLang();
   const { user } = useAuth();
   const [query, setQuery] = useState("");
@@ -99,6 +99,19 @@ export default function Home({ onNewCase, onHistory, onLearn, onRelations, onSea
 
       {/* Quick actions */}
       <div className="grid grid-cols-2 gap-3 mt-5">
+        <button
+          onClick={onZakat}
+          className="col-span-2 text-left bg-gradient-to-r from-amber-500 to-amber-600 rounded-2xl p-4 shadow-sm hover:shadow-md transition text-white flex items-center gap-3"
+        >
+          <div className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center text-lg shrink-0">
+            🕌
+          </div>
+          <div>
+            <div className="text-sm font-semibold">Zakat Calculator</div>
+            <div className="text-[11px] text-white/75 mt-0.5">Lissafa Zakat akan kuɗi, zinariya da hannun jari</div>
+          </div>
+        </button>
+
         <button
           onClick={onRelations}
           className="col-span-2 text-left bg-gradient-to-r from-brand-700 to-brand-600 rounded-2xl p-4 shadow-sm hover:shadow-md transition text-white flex items-center gap-3"

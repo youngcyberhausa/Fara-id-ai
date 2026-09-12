@@ -13,11 +13,11 @@ import Terms from "./components/Terms";
 import PrivacyPolicy from "./components/PrivacyPolicy";
 import Disclaimer from "./components/Disclaimer";
 import Home from "./components/Home";
-import Premium from "./components/Premium";
 import History from "./components/History";
 import Learn from "./components/Learn";
 import ChatWidget from "./components/ChatWidget";
 const FamilyRelations = lazy(() => import("./components/FamilyRelations"));
+const ZakatCalculator = lazy(() => import("./components/ZakatCalculator"));
 const IntroSplash = lazy(() => import("./components/IntroSplash"));
 import StepTabs, { STEPS } from "./components/StepTabs";
 import StepEstate from "./components/StepEstate";
@@ -31,14 +31,13 @@ function AppInner() {
   const { t } = useLang();
   const { user, loading: authLoading, logout } = useAuth();
 
-  // Initialize native ads (AdMob) once auth has resolved, skipping entirely
-  // for premium subscribers. No-ops on web automatically (see ads.js).
+  // Initialize native ads (AdMob) once auth has resolved. No-ops on web
+  // automatically (see ads.js). There's no ad-free premium tier anymore,
+  // so ads always run for every signed-in or guest user.
   useEffect(() => {
     if (authLoading) return;
-    const isPremium =
-      user?.is_premium && (!user.premium_expires_at || new Date(user.premium_expires_at) > new Date());
-    initAds(isPremium);
-  }, [authLoading, user]);
+    initAds();
+  }, [authLoading]);
   const [showSplash, setShowSplash] = useState(true);
 
   // Load the AdSense script once, only when a publisher client ID is
@@ -106,7 +105,6 @@ function AppInner() {
     setShowLogin(false);
     if (action === "save") handleSave();
     else if (action === "history") setView("history");
-    else if (action === "premium") setView("premium");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, pendingAction]);
 
@@ -237,13 +235,8 @@ function AppInner() {
   function goToRelations() {
     setView("relations");
   }
-  function goToPremium() {
-    if (!user) {
-      setPendingAction("premium");
-      setShowLogin(true);
-      return;
-    }
-    setView("premium");
+  function goToZakat() {
+    setView("zakat");
   }
 
   return (
@@ -292,15 +285,6 @@ function AppInner() {
                       <button
                         onClick={() => {
                           setMenuOpen(false);
-                          goToPremium();
-                        }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                      >
-                        👑 {t.tilePremium}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setMenuOpen(false);
                           goToHistory();
                         }}
                         className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
@@ -333,12 +317,16 @@ function AppInner() {
             onHistory={() => goToHistory()}
             onLearn={goToLearn}
             onRelations={goToRelations}
-            onPremium={goToPremium}
+            onZakat={goToZakat}
             onSearch={(q) => goToHistory(q)}
           />
         )}
 
-        {view === "premium" && <Premium onBack={goToHome} />}
+        {view === "zakat" && (
+          <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
+            <ZakatCalculator onBack={goToHome} />
+          </Suspense>
+        )}
 
         {view === "relations" && (
           <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
