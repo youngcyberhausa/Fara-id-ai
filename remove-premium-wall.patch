@@ -1,0 +1,270 @@
+diff --git a/frontend/src/App.jsx b/frontend/src/App.jsx
+index dea4b7a..07da9eb 100644
+--- a/frontend/src/App.jsx
++++ b/frontend/src/App.jsx
+@@ -13,7 +13,6 @@ import Terms from "./components/Terms";
+ import PrivacyPolicy from "./components/PrivacyPolicy";
+ import Disclaimer from "./components/Disclaimer";
+ import Home from "./components/Home";
+-import Premium from "./components/Premium";
+ import History from "./components/History";
+ import Learn from "./components/Learn";
+ import ChatWidget from "./components/ChatWidget";
+@@ -31,14 +30,13 @@ function AppInner() {
+   const { t } = useLang();
+   const { user, loading: authLoading, logout } = useAuth();
+ 
+-  // Initialize native ads (AdMob) once auth has resolved, skipping entirely
+-  // for premium subscribers. No-ops on web automatically (see ads.js).
++  // Initialize native ads (AdMob) once auth has resolved. No-ops on web
++  // automatically (see ads.js). There's no ad-free premium tier anymore,
++  // so ads always run for every signed-in or guest user.
+   useEffect(() => {
+     if (authLoading) return;
+-    const isPremium =
+-      user?.is_premium && (!user.premium_expires_at || new Date(user.premium_expires_at) > new Date());
+-    initAds(isPremium);
+-  }, [authLoading, user]);
++    initAds();
++  }, [authLoading]);
+   const [showSplash, setShowSplash] = useState(true);
+ 
+   // Load the AdSense script once, only when a publisher client ID is
+@@ -93,6 +91,21 @@ function AppInner() {
+   const [error, setError] = useState(null);
+   const [savedId, setSavedId] = useState(null);
+   const [saving, setSaving] = useState(false);
++  const [showLogin, setShowLogin] = useState(false);
++  const [pendingAction, setPendingAction] = useState(null); // "save" | "history" | "premium"
++
++  // Once a guest signs in through the login overlay, resume whatever they
++  // were originally trying to do instead of just dropping them back on the
++  // page they started from.
++  useEffect(() => {
++    if (!user || !pendingAction) return;
++    const action = pendingAction;
++    setPendingAction(null);
++    setShowLogin(false);
++    if (action === "save") handleSave();
++    else if (action === "history") setView("history");
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, [user, pendingAction]);
+ 
+   const step = STEPS[stepIndex];
+ 
+@@ -140,9 +153,9 @@ function AppInner() {
+     );
+   }
+ 
+-  if (!user) {
+-    return <Login />;
+-  }
++  // Login is optional: guests can use the calculator freely. showLogin only
++  // pops up when a guest tries to do something that truly needs an account
++  // (saving a case, viewing history, or going premium).
+ 
+   async function goNext() {
+     if (step === "heirs") {
+@@ -169,6 +182,11 @@ function AppInner() {
+   }
+ 
+   async function handleSave() {
++    if (!user) {
++      setPendingAction("save");
++      setShowLogin(true);
++      return;
++    }
+     setSaving(true);
+     try {
+       const payload = { ...data, heirs };
+@@ -202,6 +220,11 @@ function AppInner() {
+     setView("home");
+   }
+   function goToHistory(query = "") {
++    if (!user) {
++      setPendingAction("history");
++      setShowLogin(true);
++      return;
++    }
+     setHistoryQuery(query);
+     setView("history");
+   }
+@@ -211,9 +234,6 @@ function AppInner() {
+   function goToRelations() {
+     setView("relations");
+   }
+-  function goToPremium() {
+-    setView("premium");
+-  }
+ 
+   return (
+     <div className="min-h-screen relative">
+@@ -234,6 +254,17 @@ function AppInner() {
+           <div className="flex items-center gap-3">
+             <ThemeToggle />
+             <LanguageSwitcher />
++            {!user && (
++              <button
++                onClick={() => {
++                  setPendingAction(null);
++                  setShowLogin(true);
++                }}
++                className="px-3 py-1.5 text-sm rounded-lg bg-brand-600 text-white font-medium hover:bg-brand-700"
++              >
++                {t.loginBtn}
++              </button>
++            )}
+             {user && (
+               <div className="relative">
+                 <button
+@@ -247,15 +278,6 @@ function AppInner() {
+                   <>
+                     <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl border border-gray-100 shadow-lg z-20 overflow-hidden">
+-                      <button
+-                        onClick={() => {
+-                          setMenuOpen(false);
+-                          goToPremium();
+-                        }}
+-                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+-                      >
+-                        👑 {t.tilePremium}
+-                      </button>
+                       <button
+                         onClick={() => {
+                           setMenuOpen(false);
+@@ -291,13 +313,10 @@ function AppInner() {
+             onHistory={() => goToHistory()}
+             onLearn={goToLearn}
+             onRelations={goToRelations}
+-            onPremium={goToPremium}
+             onSearch={(q) => goToHistory(q)}
+           />
+         )}
+ 
+-        {view === "premium" && <Premium onBack={goToHome} />}
+-
+         {view === "relations" && (
+           <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
+             <FamilyRelations onBack={goToHome} />
+@@ -401,6 +420,22 @@ function AppInner() {
+       </main>
+ 
+       {user && <ChatWidget />}
++
++      {showLogin && (
++        <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
++          <button
++            onClick={() => {
++              setShowLogin(false);
++              setPendingAction(null);
++            }}
++            aria-label="Close"
++            className="absolute top-4 right-4 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200"
++          >
++            ✕
++          </button>
++          <Login />
++        </div>
++      )}
+     </div>
+   );
+ }
+diff --git a/frontend/src/ads.js b/frontend/src/ads.js
+index 15278cc..26a766b 100644
+--- a/frontend/src/ads.js
++++ b/frontend/src/ads.js
+@@ -27,10 +27,10 @@ async function loadInterstitial() {
+   }
+ }
+ 
+-export async function initAds(isPremium = false) {
+-  // Ads only make sense inside the native Android/iOS app — never on web —
+-  // and never for premium subscribers.
+-  if (!Capacitor.isNativePlatform() || isPremium) {
++export async function initAds() {
++  // Ads only make sense inside the native Android/iOS app — never on web.
++  // There is no ad-free premium tier anymore, so ads always run natively.
++  if (!Capacitor.isNativePlatform()) {
+     adsDisabled = true;
+     return;
+   }
+@@ -74,8 +74,8 @@ export async function initAds(isPremium = false) {
+  * Call this after meaningful user actions (e.g. finishing a calculation,
+  * saving a case). Shows a full-screen interstitial occasionally — not on
+  * every call — so the app doesn't feel like it's blocking the user
+- * constantly. Safe to call from anywhere; it's a silent no-op on web,
+- * for premium users, or before ads have finished initializing.
++ * constantly. Safe to call from anywhere; it's a silent no-op on web or
++ * before ads have finished initializing.
+  */
+ export async function maybeShowInterstitial() {
+   if (adsDisabled || !admobModule) return;
+diff --git a/frontend/src/components/AdBanner.jsx b/frontend/src/components/AdBanner.jsx
+index c18fd7d..5dbebb6 100644
+--- a/frontend/src/components/AdBanner.jsx
++++ b/frontend/src/components/AdBanner.jsx
+@@ -1,25 +1,20 @@
+ import { useEffect } from "react";
+-import { useAuth } from "../AuthContext";
+ 
+ export default function AdBanner({ slot, format = "auto", style }) {
+   const client = import.meta.env.VITE_ADSENSE_CLIENT;
+-  const { user } = useAuth();
+-
+-  const isPremium =
+-    user?.is_premium && (!user.premium_expires_at || new Date(user.premium_expires_at) > new Date());
+ 
++  // Ads always show for every user now — there is no ad-free premium tier
++  // anymore, so no need to check the user's account status here.
+   useEffect(() => {
+-    if (!client || isPremium) return;
++    if (!client) return;
+     try {
+       (window.adsbygoogle = window.adsbygoogle || []).push({});
+     } catch {
+       // AdSense not loaded yet or blocked — fail silently.
+     }
+-  }, [client, isPremium]);
++  }, [client]);
+ 
+-  // Premium users never see ads. Also don't render an empty ad slot
+-  // until AdSense is actually configured.
+-  if (!client || isPremium) return null;
++  if (!client) return null;
+ 
+   return (
+     <ins
+diff --git a/frontend/src/components/Home.jsx b/frontend/src/components/Home.jsx
+index 7dbf640..5f33ce2 100644
+--- a/frontend/src/components/Home.jsx
++++ b/frontend/src/components/Home.jsx
+@@ -4,7 +4,7 @@ import { useAuth } from "../AuthContext";
+ import { api } from "../api";
+ import AdBanner from "./AdBanner";
+ 
+-export default function Home({ onNewCase, onHistory, onLearn, onRelations, onPremium, onSearch }) {
++export default function Home({ onNewCase, onHistory, onLearn, onRelations, onSearch }) {
+   const { t } = useLang();
+   const { user } = useAuth();
+   const [query, setQuery] = useState("");
+@@ -99,19 +99,6 @@ export default function Home({ onNewCase, onHistory, onLearn, onRelations, onPre
+ 
+       {/* Quick actions */}
+       <div className="grid grid-cols-2 gap-3 mt-5">
+-        <button
+-          onClick={onPremium}
+-          className="col-span-2 text-left bg-gradient-to-r from-amber-500 to-amber-600 rounded-2xl p-4 shadow-sm hover:shadow-md transition text-white flex items-center gap-3"
+-        >
+-          <div className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center text-lg shrink-0">
+-            👑
+-          </div>
+-          <div>
+-            <div className="text-sm font-semibold">{t.tilePremium}</div>
+-            <div className="text-[11px] text-white/75 mt-0.5">{t.tilePremiumDesc}</div>
+-          </div>
+-        </button>
+-
+         <button
+           onClick={onRelations}
+           className="col-span-2 text-left bg-gradient-to-r from-brand-700 to-brand-600 rounded-2xl p-4 shadow-sm hover:shadow-md transition text-white flex items-center gap-3"
