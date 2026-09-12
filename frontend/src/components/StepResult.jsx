@@ -1,4 +1,7 @@
+import { lazy, Suspense } from "react";
 import { useLang } from "../i18n/LanguageContext";
+
+const Distribution3DChart = lazy(() => import("./Distribution3DChart"));
 
 export default function StepResult({ result, loading, error }) {
   const { t } = useLang();
@@ -31,6 +34,18 @@ export default function StepResult({ result, loading, error }) {
         <SummaryCard label={t.wasiyyahApplied} value={result.wasiyyah_applied} currency={result.currency} />
         <SummaryCard label={t.distributable} value={result.distributable_estate} currency={result.currency} highlight />
       </div>
+
+      {result.breakdown?.length > 0 && (
+        <Suspense
+          fallback={
+            <div className="mt-6 h-[240px] rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center text-xs text-gray-400">
+              …
+            </div>
+          }
+        >
+          <Distribution3DChart breakdown={result.breakdown} currency={result.currency} />
+        </Suspense>
+      )}
 
       <div className="mt-6 space-y-2">
         {result.breakdown.map((b) => (
