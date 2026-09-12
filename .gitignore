@@ -7,3 +7,6 @@ backend/app/routers/__pycache__/
 *.pyc
 .DS_Store
 frontend/package-lock.json
+/node_modules/
+/package.json
+/package-lock.json
