@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import { useLang } from "../i18n/LanguageContext";
+import { exportResultPdf, exportResultDocx } from "../reportExport";
 
 const Distribution3DChart = lazy(() => import("./Distribution3DChart"));
 
@@ -20,8 +21,28 @@ export default function StepResult({ result, loading, error }) {
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-gray-900">{t.resultTitle}</h2>
-      <p className="text-sm text-gray-500 mt-1">{t.resultDesc}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">{t.resultTitle}</h2>
+          <p className="text-sm text-gray-500 mt-1">{t.resultDesc}</p>
+        </div>
+        <div className="flex gap-2 shrink-0">
+          <button
+            onClick={() => exportResultPdf(result)}
+            className="text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center gap-1"
+            title="Download PDF"
+          >
+            📄 PDF
+          </button>
+          <button
+            onClick={() => exportResultDocx(result)}
+            className="text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center gap-1"
+            title="Download Word"
+          >
+            📝 Word
+          </button>
+        </div>
+      </div>
 
       {result.needs_scholar_review && (
         <div className="mt-4 bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-lg px-4 py-3">
