@@ -93,6 +93,22 @@ function AppInner() {
   const [error, setError] = useState(null);
   const [savedId, setSavedId] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null); // "save" | "history" | "premium"
+
+  // Once a guest signs in through the login overlay, resume whatever they
+  // were originally trying to do instead of just dropping them back on the
+  // page they started from.
+  useEffect(() => {
+    if (!user || !pendingAction) return;
+    const action = pendingAction;
+    setPendingAction(null);
+    setShowLogin(false);
+    if (action === "save") handleSave();
+    else if (action === "history") setView("history");
+    else if (action === "premium") setView("premium");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, pendingAction]);
 
   const step = STEPS[stepIndex];
 
@@ -140,9 +156,9 @@ function AppInner() {
     );
   }
 
-  if (!user) {
-    return <Login />;
-  }
+  // Login is optional: guests can use the calculator freely. showLogin only
+  // pops up when a guest tries to do something that truly needs an account
+  // (saving a case, viewing history, or going premium).
 
   async function goNext() {
     if (step === "heirs") {
@@ -169,6 +185,11 @@ function AppInner() {
   }
 
   async function handleSave() {
+    if (!user) {
+      setPendingAction("save");
+      setShowLogin(true);
+      return;
+    }
     setSaving(true);
     try {
       const payload = { ...data, heirs };
@@ -202,6 +223,11 @@ function AppInner() {
     setView("home");
   }
   function goToHistory(query = "") {
+    if (!user) {
+      setPendingAction("history");
+      setShowLogin(true);
+      return;
+    }
     setHistoryQuery(query);
     setView("history");
   }
@@ -212,6 +238,11 @@ function AppInner() {
     setView("relations");
   }
   function goToPremium() {
+    if (!user) {
+      setPendingAction("premium");
+      setShowLogin(true);
+      return;
+    }
     setView("premium");
   }
 
@@ -234,6 +265,17 @@ function AppInner() {
           <div className="flex items-center gap-3">
             <ThemeToggle />
             <LanguageSwitcher />
+            {!user && (
+              <button
+                onClick={() => {
+                  setPendingAction(null);
+                  setShowLogin(true);
+                }}
+                className="px-3 py-1.5 text-sm rounded-lg bg-brand-600 text-white font-medium hover:bg-brand-700"
+              >
+                {t.loginBtn}
+              </button>
+            )}
             {user && (
               <div className="relative">
                 <button
@@ -401,6 +443,22 @@ function AppInner() {
       </main>
 
       {user && <ChatWidget />}
+
+      {showLogin && (
+        <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
+          <button
+            onClick={() => {
+              setShowLogin(false);
+              setPendingAction(null);
+            }}
+            aria-label="Close"
+            className="absolute top-4 right-4 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200"
+          >
+            ✕
+          </button>
+          <Login />
+        </div>
+      )}
     </div>
   );
 }

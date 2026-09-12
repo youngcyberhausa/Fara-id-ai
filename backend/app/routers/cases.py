@@ -1,11 +1,11 @@
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
 from ..faraid_engine import calculate_faraid, HEIR_LABELS
-from ..deps import get_current_user
+from ..deps import get_current_user, get_optional_user
 
 router = APIRouter(prefix="/api", tags=["cases"])
 
@@ -66,7 +66,9 @@ def _build_result(payload: dict) -> dict:
 
 
 @router.post("/calculate")
-def calculate(req: schemas.CalculateRequest, user: models.User = Depends(get_current_user)):
+def calculate(req: schemas.CalculateRequest, user: Optional[models.User] = Depends(get_optional_user)):
+    # Guests can calculate freely — only saving a case (below) requires an
+    # account, so login stays optional for the core calculator.
     result = _build_result(req.model_dump())
     return result
 
