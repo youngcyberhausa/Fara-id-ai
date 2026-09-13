@@ -16,6 +16,7 @@ import Home from "./components/Home";
 import History from "./components/History";
 import Learn from "./components/Learn";
 import ChatWidget from "./components/ChatWidget";
+import SharedCase from "./components/SharedCase";
 const FamilyRelations = lazy(() => import("./components/FamilyRelations"));
 const ZakatCalculator = lazy(() => import("./components/ZakatCalculator"));
 const IntroSplash = lazy(() => import("./components/IntroSplash"));
@@ -30,6 +31,11 @@ import { api } from "./api";
 function AppInner() {
   const { t } = useLang();
   const { user, loading: authLoading, logout } = useAuth();
+
+  // A shared case link (?shared=token) is a fully public route.
+  const [sharedToken, setSharedToken] = useState(
+    () => new URLSearchParams(window.location.search).get("shared")
+  );
 
   // Initialize native ads (AdMob) once auth has resolved. No-ops on web
   // automatically (see ads.js). There's no ad-free premium tier anymore,
@@ -109,6 +115,18 @@ function AppInner() {
   }, [user, pendingAction]);
 
   const step = STEPS[stepIndex];
+
+  if (sharedToken) {
+    return (
+      <SharedCase
+        token={sharedToken}
+        onClose={() => {
+          window.history.replaceState({}, "", "/");
+          setSharedToken(null);
+        }}
+      />
+    );
+  }
 
   if (showSplash) {
     return (
