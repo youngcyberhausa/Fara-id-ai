@@ -100,32 +100,6 @@ export default function Home({ onNewCase, onHistory, onLearn, onRelations, onZak
       {/* Quick actions */}
       <div className="grid grid-cols-2 gap-3 mt-5">
         <button
-          onClick={onZakat}
-          className="col-span-2 text-left bg-gradient-to-r from-amber-500 to-amber-600 rounded-2xl p-4 shadow-sm hover:shadow-md transition text-white flex items-center gap-3"
-        >
-          <div className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center text-lg shrink-0">
-            🕌
-          </div>
-          <div>
-            <div className="text-sm font-semibold">Zakat Calculator</div>
-            <div className="text-[11px] text-white/75 mt-0.5">Lissafa Zakat akan kuɗi, zinariya da hannun jari</div>
-          </div>
-        </button>
-
-        <button
-          onClick={onRelations}
-          className="col-span-2 text-left bg-gradient-to-r from-brand-700 to-brand-600 rounded-2xl p-4 shadow-sm hover:shadow-md transition text-white flex items-center gap-3"
-        >
-          <div className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center text-lg shrink-0">
-            🌐
-          </div>
-          <div>
-            <div className="text-sm font-semibold">{t.tileRelations}</div>
-            <div className="text-[11px] text-white/75 mt-0.5">{t.tileRelationsDesc}</div>
-          </div>
-        </button>
-
-        <button
           onClick={onNewCase}
           className="text-left bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:shadow-md hover:border-brand-200 transition"
         >
@@ -145,6 +119,32 @@ export default function Home({ onNewCase, onHistory, onLearn, onRelations, onZak
           </div>
           <div className="text-sm font-semibold text-gray-900">{t.tileHistory}</div>
           <div className="text-[11px] text-gray-400 mt-0.5">{t.tileHistoryDesc}</div>
+        </button>
+
+        <button
+          onClick={onZakat}
+          className="col-span-2 text-left bg-gradient-to-r from-amber-500 to-amber-600 rounded-2xl p-4 shadow-sm hover:shadow-md transition text-white flex items-center gap-3"
+        >
+          <div className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center text-lg shrink-0">
+            🕌
+          </div>
+          <div>
+            <div className="text-sm font-semibold">{t.tileZakat}</div>
+            <div className="text-[11px] text-white/75 mt-0.5">{t.tileZakatDesc}</div>
+          </div>
+        </button>
+
+        <button
+          onClick={onRelations}
+          className="col-span-2 text-left bg-gradient-to-r from-brand-700 to-brand-600 rounded-2xl p-4 shadow-sm hover:shadow-md transition text-white flex items-center gap-3"
+        >
+          <div className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center text-lg shrink-0">
+            🌐
+          </div>
+          <div>
+            <div className="text-sm font-semibold">{t.tileRelations}</div>
+            <div className="text-[11px] text-white/75 mt-0.5">{t.tileRelationsDesc}</div>
+          </div>
         </button>
 
         <button

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLang } from "../i18n/LanguageContext";
 import { CURRENCIES } from "../i18n/currencies";
 
 const GOLD_NISAB_GRAMS = 85;
@@ -11,6 +12,9 @@ function n(v) {
 }
 
 export default function ZakatCalculator({ onBack }) {
+  const { t } = useLang();
+  const z = t.zakat;
+
   const [currency, setCurrency] = useState("NGN");
   const [nisabBasis, setNisabBasis] = useState("silver"); // "gold" | "silver"
   const [cash, setCash] = useState("");
@@ -45,16 +49,14 @@ export default function ZakatCalculator({ onBack }) {
   return (
     <div>
       <button onClick={onBack} className="text-sm text-brand-600 hover:underline mb-3">
-        ← Koma
+        ← {t.back}
       </button>
 
-      <h2 className="text-lg font-semibold text-gray-900">🕌 Zakat Calculator</h2>
-      <p className="text-sm text-gray-500 mt-1">
-        Lissafta Zakat akan kuɗi, zinariya, azurfa, kayan kasuwanci, da bashin da za a karɓa — bisa Nisab.
-      </p>
+      <h2 className="text-lg font-semibold text-gray-900">🕌 {z.title}</h2>
+      <p className="text-sm text-gray-500 mt-1">{z.desc}</p>
 
       <div className="mt-5">
-        <label className="text-sm font-medium text-gray-700">Kuɗin da za a yi amfani da su (Currency)</label>
+        <label className="text-sm font-medium text-gray-700">{z.currencyLabel}</label>
         <select
           value={currency}
           onChange={(e) => setCurrency(e.target.value)}
@@ -68,24 +70,24 @@ export default function ZakatCalculator({ onBack }) {
         </select>
       </div>
 
-      <Field label="Kuɗi da Ajiya a Banki (Cash & Bank)" value={cash} onChange={setCash} />
+      <Field label={z.cashLabel} value={cash} onChange={setCash} />
 
       <div className="mt-5 grid grid-cols-2 gap-3">
-        <Field label="Zinariya (grams)" value={goldGrams} onChange={setGoldGrams} />
-        <Field label={`Farashin gram 1 na Zinariya (${currency})`} value={goldPrice} onChange={setGoldPrice} />
+        <Field label={z.goldGramsLabel} value={goldGrams} onChange={setGoldGrams} />
+        <Field label={`${z.goldPriceLabel} (${currency})`} value={goldPrice} onChange={setGoldPrice} />
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-3">
-        <Field label="Azurfa (grams)" value={silverGrams} onChange={setSilverGrams} />
-        <Field label={`Farashin gram 1 na Azurfa (${currency})`} value={silverPrice} onChange={setSilverPrice} />
+        <Field label={z.silverGramsLabel} value={silverGrams} onChange={setSilverGrams} />
+        <Field label={`${z.silverPriceLabel} (${currency})`} value={silverPrice} onChange={setSilverPrice} />
       </div>
 
-      <Field label="Darajar Kayan Kasuwanci/Stock" value={tradeGoods} onChange={setTradeGoods} />
-      <Field label="Bashin da Wasu ke Bin ka (za a iya karɓa)" value={receivables} onChange={setReceivables} />
-      <Field label="Bashin da Kake Bin Wasu (za a cire)" value={debts} onChange={setDebts} />
+      <Field label={z.tradeGoodsLabel} value={tradeGoods} onChange={setTradeGoods} />
+      <Field label={z.receivablesLabel} value={receivables} onChange={setReceivables} />
+      <Field label={z.debtsLabel} value={debts} onChange={setDebts} />
 
       <div className="mt-5">
-        <label className="text-sm font-medium text-gray-700">Tushen Nisab</label>
+        <label className="text-sm font-medium text-gray-700">{z.nisabBasisLabel}</label>
         <div className="mt-1.5 flex gap-2">
           <button
             onClick={() => setNisabBasis("silver")}
@@ -95,7 +97,7 @@ export default function ZakatCalculator({ onBack }) {
                 : "border-gray-200 text-gray-600"
             }`}
           >
-            Azurfa (595g)
+            {z.nisabSilver}
           </button>
           <button
             onClick={() => setNisabBasis("gold")}
@@ -103,52 +105,46 @@ export default function ZakatCalculator({ onBack }) {
               nisabBasis === "gold" ? "bg-brand-600 text-white border-brand-600" : "border-gray-200 text-gray-600"
             }`}
           >
-            Zinariya (85g)
+            {z.nisabGold}
           </button>
         </div>
-        <p className="text-[11px] text-gray-400 mt-1.5">
-          Yawancin malamai suna ba da shawarar amfani da Nisab na azurfa domin ya fi ƙasƙanci, wanda ke nufin an fi
-          bayar da Zakat ga talakawa.
-        </p>
+        <p className="text-[11px] text-gray-400 mt-1.5">{z.nisabNote}</p>
       </div>
 
       <button
         onClick={calculate}
         className="mt-6 w-full bg-brand-600 text-white text-sm font-medium py-3 rounded-lg hover:bg-brand-700"
       >
-        Lissafa Zakat
+        {z.calculateBtn}
       </button>
 
       {result && (
         <div className="mt-6 space-y-3">
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-lg border border-gray-200 px-3 py-3">
-              <div className="text-[11px] text-gray-400">Jimlar Dukiyar da za a Yi wa Zakat</div>
+              <div className="text-[11px] text-gray-400">{z.zakatableLabel}</div>
               <div className="text-sm font-semibold mt-0.5 text-gray-800">{fmt(result.zakatable)}</div>
             </div>
             <div className="rounded-lg border border-gray-200 px-3 py-3">
-              <div className="text-[11px] text-gray-400">Nisab (Iyaka)</div>
+              <div className="text-[11px] text-gray-400">{z.nisabLabel}</div>
               <div className="text-sm font-semibold mt-0.5 text-gray-800">{fmt(result.nisabValue)}</div>
             </div>
           </div>
 
           {result.meetsNisab ? (
             <div className="rounded-lg border border-brand-300 bg-brand-50 px-4 py-4 text-center">
-              <div className="text-xs text-brand-700 mb-1">Zakat da za a Bayar (2.5%)</div>
+              <div className="text-xs text-brand-700 mb-1">{z.zakatDueLabel}</div>
               <div className="text-2xl font-bold text-brand-700">{fmt(result.zakatDue)}</div>
             </div>
           ) : (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              Dukiyarka bata kai Nisab ba, don haka babu Zakat da wajaba akanka a wannan lokacin.
+              {z.belowNisabMsg}
             </div>
           )}
         </div>
       )}
 
-      <p className="text-[11px] text-gray-400 mt-6 leading-relaxed">
-        Wannan calculator jagora ne na gaba ɗaya kawai. Don yanayi mai rikitarwa (misali Zakat na gonaki, dabbobi, ko
-        hannun jari na musamman), da fatan za a tuntuɓi malami don cikakken shawara.
-      </p>
+      <p className="text-[11px] text-gray-400 mt-6 leading-relaxed">{z.footerNote}</p>
     </div>
   );
 }
