@@ -4,12 +4,88 @@ import {
   Packer,
   Paragraph,
   TextRun,
-  HeadingLevel,
+  ImageRun,
   Table,
   TableRow,
   TableCell,
   WidthType,
 } from "docx";
+
+// Exact brand palette from src/index.css (--color-brand-*) plus the gold
+// accents used in the app's logo, so exported files match the app 1:1.
+const BRAND = {
+  50: "#ecfdf3",
+  100: "#d1fae0",
+  200: "#a7f3c8",
+  500: "#16a34a",
+  600: "#0f7a3b",
+  700: "#0c5f2f",
+  900: "#0a3d20",
+};
+const GOLD = "#d9b65c";
+const GOLD_DARK = "#b8892f";
+
+// Same markup as components/Logo.jsx, as a standalone SVG string (needs
+// xmlns to render outside React) so we can rasterize it for PDF/Word.
+const LOGO_SVG = `
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="faraidGoldGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f3d98a" />
+      <stop offset="50%" stop-color="#d9b65c" />
+      <stop offset="100%" stop-color="#b8892f" />
+    </linearGradient>
+    <linearGradient id="faraidGreenGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#146b3a" />
+      <stop offset="100%" stop-color="#0c5f2f" />
+    </linearGradient>
+    <radialGradient id="faraidSheen" cx="35%" cy="25%" r="70%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.3" />
+      <stop offset="60%" stop-color="#ffffff" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <polygon points="32.00,2.00 39.65,13.52 53.21,10.79 50.48,24.35 62.00,32.00 50.48,39.65 53.21,53.21 39.65,50.48 32.00,62.00 24.35,50.48 10.79,53.21 13.52,39.65 2.00,32.00 13.52,24.35 10.79,10.79 24.35,13.52" fill="url(#faraidGreenGrad)" stroke="url(#faraidGoldGrad)" stroke-width="1.4" stroke-linejoin="round" />
+  <polygon points="41.76,8.44 44.73,19.27 55.56,22.24 50.00,32.00 55.56,41.76 44.73,44.73 41.76,55.56 32.00,50.00 22.24,55.56 19.27,44.73 8.44,41.76 14.00,32.00 8.44,22.24 19.27,19.27 22.24,8.44 32.00,14.00" fill="none" stroke="url(#faraidGoldGrad)" stroke-width="0.9" opacity="0.85" />
+  <polygon points="32.00,2.40 34.60,5.00 32.00,7.60 29.40,5.00" fill="url(#faraidGoldGrad)" stroke="#8a6a1f" stroke-width="0.3" />
+  <polygon points="51.09,10.31 53.69,12.91 51.09,15.51 48.49,12.91" fill="url(#faraidGoldGrad)" stroke="#8a6a1f" stroke-width="0.3" />
+  <polygon points="59.00,29.40 61.60,32.00 59.00,34.60 56.40,32.00" fill="url(#faraidGoldGrad)" stroke="#8a6a1f" stroke-width="0.3" />
+  <polygon points="51.09,48.49 53.69,51.09 51.09,53.69 48.49,51.09" fill="url(#faraidGoldGrad)" stroke="#8a6a1f" stroke-width="0.3" />
+  <polygon points="32.00,56.40 34.60,59.00 32.00,61.60 29.40,59.00" fill="url(#faraidGoldGrad)" stroke="#8a6a1f" stroke-width="0.3" />
+  <polygon points="12.91,48.49 15.51,51.09 12.91,53.69 10.31,51.09" fill="url(#faraidGoldGrad)" stroke="#8a6a1f" stroke-width="0.3" />
+  <polygon points="5.00,29.40 7.60,32.00 5.00,34.60 2.40,32.00" fill="url(#faraidGoldGrad)" stroke="#8a6a1f" stroke-width="0.3" />
+  <polygon points="12.91,10.31 15.51,12.91 12.91,15.51 10.31,12.91" fill="url(#faraidGoldGrad)" stroke="#8a6a1f" stroke-width="0.3" />
+  <circle cx="32" cy="32" r="18.5" fill="none" stroke="url(#faraidGoldGrad)" stroke-width="0.6" opacity="0.7" />
+  <circle cx="32" cy="32" r="15.5" fill="url(#faraidGreenGrad)" stroke="url(#faraidGoldGrad)" stroke-width="1.8" />
+  <circle cx="32" cy="32" r="15.5" fill="url(#faraidSheen)" />
+  <circle cx="32" cy="32" r="12.3" fill="none" stroke="#d9b65c" stroke-width="0.5" opacity="0.55" />
+  <text x="32.6" y="38.3" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="18" font-weight="700" fill="#04200f" opacity="0.55">F</text>
+  <text x="32" y="37.6" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="18" font-weight="700" fill="url(#faraidGoldGrad)">F</text>
+</svg>
+`.trim();
+
+function hexToRgb(hex) {
+  const h = hex.replace("#", "");
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+
+function svgToPngDataUrl(svgString, size = 128) {
+  return new Promise((resolve, reject) => {
+    const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
 
 function saveBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
@@ -22,60 +98,122 @@ function saveBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-export function exportResultPdf(result, appName = "Fara'id AI") {
+export async function exportResultPdf(result, appName = "Fara'id AI") {
   const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 15;
-  let y = 20;
+  const [r700, g700, b700] = hexToRgb(BRAND[700]);
+  const [r600, g600, b600] = hexToRgb(BRAND[600]);
+  const [r50, g50, b50] = hexToRgb(BRAND[50]);
+  const [gr, gg, gb] = hexToRgb(GOLD);
+  const [gdr, gdg, gdb] = hexToRgb(GOLD_DARK);
 
-  doc.setFontSize(16);
-  doc.text(appName, margin, y);
-  y += 8;
-  doc.setFontSize(10);
-  doc.setTextColor(120);
-  doc.text(`Report generated: ${new Date().toLocaleDateString()}`, margin, y);
-  y += 10;
+  // Header banner matching the app's green hero + gold logo
+  doc.setFillColor(r700, g700, b700);
+  doc.rect(0, 0, pageWidth, 32, "F");
 
-  doc.setTextColor(0);
-  doc.setFontSize(12);
+  try {
+    const logoPng = await svgToPngDataUrl(LOGO_SVG, 128);
+    doc.addImage(logoPng, "PNG", margin, 6, 20, 20);
+  } catch {
+    // logo rasterization failed (e.g. blocked canvas) — continue without it
+  }
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.text(appName, margin + 26, 16);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(gr, gg, gb);
+  doc.text("Islamic Inheritance Intelligence", margin + 26, 23);
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(8);
+  doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth - margin, 28, { align: "right" });
+
+  let y = 42;
+
+  function sectionHeading(text) {
+    doc.setTextColor(r600, g600, b600);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text(text, margin, y);
+    y += 3;
+    doc.setDrawColor(gdr, gdg, gdb);
+    doc.setLineWidth(0.5);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 7;
+    doc.setFont("helvetica", "normal");
+  }
+
+  sectionHeading("Estate Summary");
+  doc.setTextColor(40, 40, 40);
+  doc.setFontSize(11);
   doc.text(`Net Estate: ${Number(result.net_estate).toLocaleString()} ${result.currency}`, margin, y);
   y += 7;
   doc.text(`Wasiyyah Applied: ${Number(result.wasiyyah_applied).toLocaleString()} ${result.currency}`, margin, y);
   y += 7;
-  doc.text(`Distributable Estate: ${Number(result.distributable_estate).toLocaleString()} ${result.currency}`, margin, y);
-  y += 10;
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(r700, g700, b700);
+  doc.text(
+    `Distributable Estate: ${Number(result.distributable_estate).toLocaleString()} ${result.currency}`,
+    margin,
+    y
+  );
+  y += 12;
 
-  doc.setFontSize(13);
-  doc.text("Distribution Breakdown", margin, y);
+  sectionHeading("Distribution Breakdown");
+
+  doc.setFillColor(r700, g700, b700);
+  doc.rect(margin, y - 5, pageWidth - margin * 2, 7, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text("Heir", margin + 2, y);
+  doc.text("Share", margin + 95, y);
+  doc.text("Amount", pageWidth - margin - 2, y, { align: "right" });
   y += 8;
-  doc.setFontSize(11);
 
-  (result.breakdown || []).forEach((b) => {
-    if (y > 270) {
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  (result.breakdown || []).forEach((b, i) => {
+    if (y > 275) {
       doc.addPage();
       y = 20;
     }
+    if (i % 2 === 0) {
+      doc.setFillColor(r50, g50, b50);
+      doc.rect(margin, y - 5, pageWidth - margin * 2, 7, "F");
+    }
+    doc.setTextColor(30, 30, 30);
     const name = `${b.label}${b.count > 1 ? ` x${b.count}` : ""}`;
-    doc.text(name, margin, y);
-    doc.text(`${b.share_fraction} (${b.share_percent}%)`, margin + 80, y);
-    doc.text(`${Number(b.amount_total).toLocaleString()} ${result.currency}`, margin + 140, y);
+    doc.text(name, margin + 2, y);
+    doc.text(`${b.share_fraction} (${b.share_percent}%)`, margin + 95, y);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(r700, g700, b700);
+    doc.text(`${Number(b.amount_total).toLocaleString()} ${result.currency}`, pageWidth - margin - 2, y, {
+      align: "right",
+    });
+    doc.setFont("helvetica", "normal");
     y += 7;
   });
 
   if (result.notes?.length) {
-    y += 5;
-    doc.setFontSize(13);
-    doc.text("Notes", margin, y);
-    y += 8;
-    doc.setFontSize(10);
-    result.notes.forEach((n) => {
-      const lines = doc.splitTextToSize(`• ${n}`, 180);
+    y += 6;
+    sectionHeading("Notes");
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 80);
+    result.notes.forEach((note) => {
+      const lines = doc.splitTextToSize(`• ${note}`, pageWidth - margin * 2 - 4);
       lines.forEach((line) => {
         if (y > 280) {
           doc.addPage();
           y = 20;
         }
-        doc.text(line, margin, y);
-        y += 6;
+        doc.text(line, margin + 2, y);
+        y += 5.5;
       });
     });
   }
@@ -84,24 +222,58 @@ export function exportResultPdf(result, appName = "Fara'id AI") {
 }
 
 export async function exportResultDocx(result, appName = "Fara'id AI") {
+  let logoImage = null;
+  try {
+    const pngDataUrl = await svgToPngDataUrl(LOGO_SVG, 128);
+    const buf = await (await fetch(pngDataUrl)).arrayBuffer();
+    logoImage = new ImageRun({ data: buf, transformation: { width: 46, height: 46 } });
+  } catch {
+    logoImage = null;
+  }
+
+  function heading(text) {
+    return new Paragraph({
+      children: [new TextRun({ text, bold: true, color: "0C5F2F", size: 26 })],
+      spacing: { before: 200, after: 100 },
+      border: { bottom: { color: "B8892F", space: 4, style: "single", size: 4 } },
+    });
+  }
+
   const headerRow = new TableRow({
+    tableHeader: true,
     children: ["Heir", "Share", "Amount"].map(
       (h) =>
         new TableCell({
           width: { size: 33, type: WidthType.PERCENTAGE },
-          children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })],
+          shading: { fill: "0C5F2F" },
+          children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, color: "FFFFFF" })] })],
         })
     ),
   });
 
   const dataRows = (result.breakdown || []).map(
-    (b) =>
+    (b, i) =>
       new TableRow({
         children: [
           new Paragraph(`${b.label}${b.count > 1 ? ` x${b.count}` : ""}`),
           new Paragraph(`${b.share_fraction} (${b.share_percent}%)`),
-          new Paragraph(`${Number(b.amount_total).toLocaleString()} ${result.currency}`),
-        ].map((p) => new TableCell({ width: { size: 33, type: WidthType.PERCENTAGE }, children: [p] })),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `${Number(b.amount_total).toLocaleString()} ${result.currency}`,
+                bold: true,
+                color: "0C5F2F",
+              }),
+            ],
+          }),
+        ].map(
+          (p) =>
+            new TableCell({
+              width: { size: 33, type: WidthType.PERCENTAGE },
+              shading: { fill: i % 2 === 0 ? "ECFDF3" : "FFFFFF" },
+              children: [p],
+            })
+        ),
       })
   );
 
@@ -109,34 +281,46 @@ export async function exportResultDocx(result, appName = "Fara'id AI") {
     sections: [
       {
         children: [
-          new Paragraph({ text: appName, heading: HeadingLevel.HEADING1 }),
           new Paragraph({
-            text: `Report generated: ${new Date().toLocaleDateString()}`,
+            children: [
+              ...(logoImage ? [logoImage] : []),
+              new TextRun({ text: `   ${appName}`, bold: true, size: 40, color: "0C5F2F" }),
+            ],
+            spacing: { after: 60 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Islamic Inheritance Intelligence", italics: true, size: 20, color: "B8892F" }),
+            ],
+            border: { bottom: { color: "D9B65C", space: 6, style: "single", size: 6 } },
             spacing: { after: 200 },
           }),
+          new Paragraph({
+            text: `Generated: ${new Date().toLocaleDateString()}`,
+            spacing: { after: 300 },
+          }),
+
+          heading("Estate Summary"),
           new Paragraph({ text: `Net Estate: ${Number(result.net_estate).toLocaleString()} ${result.currency}` }),
           new Paragraph({
             text: `Wasiyyah Applied: ${Number(result.wasiyyah_applied).toLocaleString()} ${result.currency}`,
           }),
           new Paragraph({
-            text: `Distributable Estate: ${Number(result.distributable_estate).toLocaleString()} ${result.currency}`,
-            spacing: { after: 200 },
-          }),
-          new Paragraph({
-            text: "Distribution Breakdown",
-            heading: HeadingLevel.HEADING2,
+            children: [
+              new TextRun({
+                text: `Distributable Estate: ${Number(result.distributable_estate).toLocaleString()} ${result.currency}`,
+                bold: true,
+                color: "0C5F2F",
+              }),
+            ],
             spacing: { after: 100 },
           }),
+
+          heading("Distribution Breakdown"),
           new Table({ rows: [headerRow, ...dataRows], width: { size: 100, type: WidthType.PERCENTAGE } }),
+
           ...(result.notes?.length
-            ? [
-                new Paragraph({
-                  text: "Notes",
-                  heading: HeadingLevel.HEADING2,
-                  spacing: { before: 200, after: 100 },
-                }),
-                ...result.notes.map((n) => new Paragraph({ text: `• ${n}` })),
-              ]
+            ? [heading("Notes"), ...result.notes.map((n) => new Paragraph({ text: `• ${n}` }))]
             : []),
         ],
       },
