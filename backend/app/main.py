@@ -4,7 +4,7 @@ from sqlalchemy import text
 
 from . import models
 from .database import engine
-from .routers import cases, auth, support, payments
+from .routers import cases, auth, support, payments, admin, announcements
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -17,6 +17,7 @@ _MIGRATIONS = [
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_premium BOOLEAN DEFAULT FALSE",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS premium_expires_at TIMESTAMP",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS paystack_customer_code VARCHAR",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE",
     "ALTER TABLE cases ADD COLUMN IF NOT EXISTS share_token VARCHAR",
 ]
 try:
@@ -25,9 +26,6 @@ try:
             try:
                 conn.execute(text(stmt))
             except Exception:
-                # SQLite (local dev) doesn't support "IF NOT EXISTS" on
-                # ADD COLUMN in older versions — safe to ignore there since
-                # local dev DBs are disposable and get created fresh anyway.
                 pass
 except Exception:
     pass
@@ -46,6 +44,8 @@ app.include_router(auth.router)
 app.include_router(cases.router)
 app.include_router(support.router)
 app.include_router(payments.router)
+app.include_router(admin.router)
+app.include_router(announcements.router)
 
 
 @app.get("/api/health")

@@ -17,6 +17,8 @@ import History from "./components/History";
 import Learn from "./components/Learn";
 import ChatWidget from "./components/ChatWidget";
 import SharedCase from "./components/SharedCase";
+import NotificationBanner from "./components/NotificationBanner";
+const AdminDashboard = lazy(() => import("./components/AdminDashboard"));
 const FamilyRelations = lazy(() => import("./components/FamilyRelations"));
 const ZakatCalculator = lazy(() => import("./components/ZakatCalculator"));
 const IntroSplash = lazy(() => import("./components/IntroSplash"));
@@ -32,22 +34,16 @@ function AppInner() {
   const { t } = useLang();
   const { user, loading: authLoading, logout } = useAuth();
 
-  // A shared case link (?shared=token) is a fully public route.
   const [sharedToken, setSharedToken] = useState(
     () => new URLSearchParams(window.location.search).get("shared")
   );
 
-  // Initialize native ads (AdMob) once auth has resolved. No-ops on web
-  // automatically (see ads.js). There's no ad-free premium tier anymore,
-  // so ads always run for every signed-in or guest user.
   useEffect(() => {
     if (authLoading) return;
     initAds();
   }, [authLoading]);
   const [showSplash, setShowSplash] = useState(true);
 
-  // Load the AdSense script once, only when a publisher client ID is
-  // configured (VITE_ADSENSE_CLIENT). No-ops silently otherwise.
   useEffect(() => {
     const client = import.meta.env.VITE_ADSENSE_CLIENT;
     if (!client) return;
@@ -80,7 +76,7 @@ function AppInner() {
     window.history.pushState({}, "", "/");
     setPage("app");
   }
-  const [view, setView] = useState("home"); // "home" | "wizard" | "history" | "learn" | "relations"
+  const [view, setView] = useState("home");
   const [menuOpen, setMenuOpen] = useState(false);
   const [historyQuery, setHistoryQuery] = useState("");
   const [stepIndex, setStepIndex] = useState(0);
@@ -99,11 +95,8 @@ function AppInner() {
   const [savedId, setSavedId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
-  const [pendingAction, setPendingAction] = useState(null); // "save" | "history" | "premium"
+  const [pendingAction, setPendingAction] = useState(null);
 
-  // Once a guest signs in through the login overlay, resume whatever they
-  // were originally trying to do instead of just dropping them back on the
-  // page they started from.
   useEffect(() => {
     if (!user || !pendingAction) return;
     const action = pendingAction;
@@ -171,10 +164,6 @@ function AppInner() {
       </div>
     );
   }
-
-  // Login is optional: guests can use the calculator freely. showLogin only
-  // pops up when a guest tries to do something that truly needs an account
-  // (saving a case, viewing history, or going premium).
 
   async function goNext() {
     if (step === "heirs") {
@@ -256,12 +245,15 @@ function AppInner() {
   function goToZakat() {
     setView("zakat");
   }
+  function goToAdmin() {
+    setView("admin");
+  }
 
   return (
     <div className="min-h-screen relative">
       <IslamicWatermark />
+      <NotificationBanner />
 
-      {/* Header */}
       <header className="border-b border-gray-100 bg-white/90 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -300,6 +292,20 @@ function AppInner() {
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl border border-gray-100 shadow-lg z-20 overflow-hidden">
+                      {user.is_admin && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setMenuOpen(false);
+                              goToAdmin();
+                            }}
+                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                          >
+                            🛠 Admin Dashboard
+                          </button>
+                          <div className="border-t border-gray-100" />
+                        </>
+                      )}
                       <button
                         onClick={() => {
                           setMenuOpen(false);
@@ -346,6 +352,12 @@ function AppInner() {
           </Suspense>
         )}
 
+        {view === "admin" && user?.is_admin && (
+          <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
+            <AdminDashboard onBack={goToHome} />
+          </Suspense>
+        )}
+
         {view === "relations" && (
           <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
             <FamilyRelations onBack={goToHome} />
@@ -364,7 +376,6 @@ function AppInner() {
 
         {view === "wizard" && (
           <>
-        {/* Wizard card */}
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>

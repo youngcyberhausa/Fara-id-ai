@@ -25,6 +25,9 @@ class User(Base):
     premium_expires_at = Column(DateTime, nullable=True)
     paystack_customer_code = Column(String, nullable=True)
 
+    # Admin access (dashboard, announcements)
+    is_admin = Column(Boolean, default=False)
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -71,3 +74,17 @@ class Case(Base):
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Announcement(Base):
+    """An admin-authored broadcast — shown to every user (and guests) as a
+    dismissible banner. Optionally includes a video (YouTube link or a
+    direct video file URL). Only one announcement is "active" at a time."""
+    __tablename__ = "announcements"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    title = Column(String, nullable=False)
+    message = Column(String, nullable=True)
+    video_url = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

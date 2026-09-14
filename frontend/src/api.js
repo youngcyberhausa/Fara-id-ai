@@ -115,3 +115,29 @@ export const paymentsApi = {
       headers: authHeaders(),
     }).then(handle),
 };
+
+export const adminApi = {
+  getStats: () => fetch(`${BASE_URL}/admin/stats`, { headers: authHeaders() }).then(handle),
+
+  listUsers: () => fetch(`${BASE_URL}/admin/users`, { headers: authHeaders() }).then(handle),
+
+  listAnnouncements: () =>
+    fetch(`${BASE_URL}/admin/announcements`, { headers: authHeaders() }).then(handle),
+
+  createAnnouncement: (payload) =>
+    fetch(`${BASE_URL}/admin/announcements`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(payload),
+    }).then(handle),
+
+  deactivateAnnouncement: (id) =>
+    fetch(`${BASE_URL}/admin/announcements/${id}`, {
+      method: "DELETE",
+      headers: authHeaders(),
+    }).then(handle),
+};
+
+export const announcementsApi = {
+  getActive: () => fetch(`${BASE_URL}/announcements/active`).then(handle),
+};

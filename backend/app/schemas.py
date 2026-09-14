@@ -53,6 +53,8 @@ class UserOut(BaseModel):
     name: Optional[str] = None
     is_premium: bool = False
     premium_expires_at: Optional[datetime] = None
+    is_admin: bool = False
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -86,3 +88,28 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserOut
+
+
+class AnnouncementCreate(BaseModel):
+    title: str
+    message: Optional[str] = None
+    video_url: Optional[str] = None
+
+
+class AnnouncementOut(BaseModel):
+    id: str
+    title: str
+    message: Optional[str] = None
+    video_url: Optional[str] = None
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AdminStats(BaseModel):
+    total_users: int
+    total_cases: int
+    premium_users: int
+    new_users_7d: int
