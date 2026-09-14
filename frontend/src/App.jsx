@@ -98,14 +98,14 @@ function AppInner() {
   const [pendingAction, setPendingAction] = useState(null);
 
   useEffect(() => {
-    if (!user || !pendingAction) return;
+    if (!user || !showLogin) return;
+    setShowLogin(false);
     const action = pendingAction;
     setPendingAction(null);
-    setShowLogin(false);
     if (action === "save") handleSave();
     else if (action === "history") setView("history");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, pendingAction]);
+  }, [user, showLogin]);
 
   const step = STEPS[stepIndex];
 
