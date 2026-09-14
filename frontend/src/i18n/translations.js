@@ -172,6 +172,15 @@ const en = {
     footerNote: "This calculator is a general guide only. For complex situations (e.g. Zakat on farmland, livestock, or specialized investments), please consult a scholar for full guidance.",
   },
   relationsTitle: "How Family Relationships Affect Inheritance",
+  familySharing: {
+    shareBtn: "Share with Family",
+    shareDesc: "View-only link — anyone with this link can see the result, without needing an account.",
+    copyBtn: "Copy",
+    stopSharing: "Stop Sharing",
+    openApp: "Open App",
+    viewOnlyNotice: "This is a view-only link someone shared with you — it's a family case, not yours.",
+    notFound: "This case could not be found — sharing may have been turned off.",
+  },
 
   welcomeBack: "Welcome back",
   disclaimerTitle: "Disclaimer",
@@ -362,6 +371,15 @@ const ha = {
     footerNote: "Wannan calculator jagora ne na gaba ɗaya kawai. Don yanayi mai rikitarwa (misali Zakat na gonaki, dabbobi, ko hannun jari na musamman), da fatan za a tuntuɓi malami don cikakken shawara.",
   },
   relationsTitle: "Yadda Dangantakar Iyali Take Shafar Gado",
+  familySharing: {
+    shareBtn: "Raba da Iyali",
+    shareDesc: "Link na kallo kaɗai — kowa da ke da wannan link zai iya ganin sakamakon, ba tare da shiga account ba.",
+    copyBtn: "Kwafa",
+    stopSharing: "Dakatar da Raba",
+    openApp: "Buɗe App",
+    viewOnlyNotice: "Wannan link ne na kallo kaɗai da wani ya raba da kai — case ne cikin iyali, ba naka ba.",
+    notFound: "Ba a sami wannan case ba — wataƙila an dakatar da raba shi.",
+  },
 
   welcomeBack: "Barka da dawowa",
   disclaimerTitle: "Sanarwa",

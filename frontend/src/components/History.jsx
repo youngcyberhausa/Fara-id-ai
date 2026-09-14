@@ -4,6 +4,8 @@ import { api } from "../api";
 import StepResult from "./StepResult";
 
 function ShareButton({ caseId, initialToken }) {
+  const { t } = useLang();
+  const fs = t.familySharing;
   const [token, setToken] = useState(initialToken || null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -51,16 +53,14 @@ function ShareButton({ caseId, initialToken }) {
         disabled={busy}
         className="text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center gap-1 disabled:opacity-50"
       >
-        👪 {busy ? "…" : "Raba da Iyali"}
+        👪 {busy ? "…" : fs.shareBtn}
       </button>
     );
   }
 
   return (
     <div className="mt-4 rounded-lg border border-brand-200 bg-brand-50 px-3 py-3">
-      <div className="text-[11px] text-brand-700 font-medium mb-1.5">
-        Link na kallo kaɗai — kowa da ke da wannan link zai iya ganin sakamakon, ba tare da shiga account ba.
-      </div>
+      <div className="text-[11px] text-brand-700 font-medium mb-1.5">{fs.shareDesc}</div>
       <div className="flex items-center gap-2">
         <input
           readOnly
@@ -72,7 +72,7 @@ function ShareButton({ caseId, initialToken }) {
           onClick={copyLink}
           className="text-xs font-medium px-2.5 py-1.5 rounded-md bg-brand-600 text-white hover:bg-brand-700 shrink-0"
         >
-          {copied ? "✓" : "Kwafa"}
+          {copied ? "✓" : fs.copyBtn}
         </button>
       </div>
       <button
@@ -80,7 +80,7 @@ function ShareButton({ caseId, initialToken }) {
         disabled={busy}
         className="text-[11px] text-red-500 hover:text-red-700 mt-2 disabled:opacity-50"
       >
-        {busy ? "…" : "Dakatar da Raba"}
+        {busy ? "…" : fs.stopSharing}
       </button>
     </div>
   );

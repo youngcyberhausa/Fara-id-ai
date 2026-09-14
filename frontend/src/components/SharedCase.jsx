@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import { api } from "../api";
+import { useLang } from "../i18n/LanguageContext";
 import Logo from "./Logo";
 import StepResult from "./StepResult";
 
 export default function SharedCase({ token, onClose }) {
+  const { t } = useLang();
+  const fs = t.familySharing;
   const [caseData, setCaseData] = useState(null);
   const [error, setError] = useState(null);
 
@@ -29,27 +32,27 @@ export default function SharedCase({ token, onClose }) {
           <div className="flex items-center gap-3">
             <Logo size={30} />
             <div className="text-left">
-              <div className="text-sm font-semibold text-gray-900 leading-tight">Fara'id AI</div>
-              <div className="text-[11px] text-gray-400 leading-tight">Islamic Inheritance Intelligence</div>
+              <div className="text-sm font-semibold text-gray-900 leading-tight">{t.appName}</div>
+              <div className="text-[11px] text-gray-400 leading-tight">{t.tagline}</div>
             </div>
           </div>
           <button
             onClick={onClose}
             className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
           >
-            Buɗe App
+            {fs.openApp}
           </button>
         </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-6">
         <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-lg px-4 py-2.5 mb-4">
-          👪 Wannan link ne na kallo kaɗai da wani ya raba da kai — case ne cikin iyali, ba naka ba.
+          👪 {fs.viewOnlyNotice}
         </div>
 
         {error && (
           <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-3">
-            Ba a sami wannan case ba — wataƙila an dakatar da raba shi.
+            {fs.notFound}
           </div>
         )}
 
