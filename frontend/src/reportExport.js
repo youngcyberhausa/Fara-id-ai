@@ -11,8 +11,6 @@ import {
   WidthType,
 } from "docx";
 
-// Exact brand palette from src/index.css (--color-brand-*) plus the gold
-// accents used in the app's logo, so exported files match the app 1:1.
 const BRAND = {
   50: "#ecfdf3",
   100: "#d1fae0",
@@ -25,8 +23,6 @@ const BRAND = {
 const GOLD = "#d9b65c";
 const GOLD_DARK = "#b8892f";
 
-// Same markup as components/Logo.jsx, as a standalone SVG string (needs
-// xmlns to render outside React) so we can rasterize it for PDF/Word.
 const LOGO_SVG = `
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
   <defs>
@@ -98,7 +94,22 @@ function saveBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-export async function exportResultPdf(result, appName = "Fara'id AI") {
+export async function exportResultPdf(result, t = {}) {
+  const appName = t.appName || "Fara'id AI";
+  const tagline = t.tagline || "Islamic Inheritance Intelligence";
+  const L = {
+    netEstate: t.netEstate || "Net Estate",
+    wasiyyahApplied: t.wasiyyahApplied || "Wasiyyah Applied",
+    distributable: t.distributable || "Distributable Estate",
+    notes: t.notesTitle || "Notes",
+    estateSummary: t.pdf?.estateSummary || "Estate Summary",
+    distributionBreakdown: t.pdf?.distributionBreakdown || "Distribution Breakdown",
+    heir: t.pdf?.heir || "Heir",
+    share: t.pdf?.share || "Share",
+    amount: t.pdf?.amount || "Amount",
+    generated: t.pdf?.generated || "Generated",
+  };
+
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 15;
@@ -108,7 +119,6 @@ export async function exportResultPdf(result, appName = "Fara'id AI") {
   const [gr, gg, gb] = hexToRgb(GOLD);
   const [gdr, gdg, gdb] = hexToRgb(GOLD_DARK);
 
-  // Header banner matching the app's green hero + gold logo
   doc.setFillColor(r700, g700, b700);
   doc.rect(0, 0, pageWidth, 32, "F");
 
@@ -116,7 +126,7 @@ export async function exportResultPdf(result, appName = "Fara'id AI") {
     const logoPng = await svgToPngDataUrl(LOGO_SVG, 128);
     doc.addImage(logoPng, "PNG", margin, 6, 20, 20);
   } catch {
-    // logo rasterization failed (e.g. blocked canvas) — continue without it
+    // logo rasterization failed — continue without it
   }
 
   doc.setTextColor(255, 255, 255);
@@ -127,11 +137,11 @@ export async function exportResultPdf(result, appName = "Fara'id AI") {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(gr, gg, gb);
-  doc.text("Islamic Inheritance Intelligence", margin + 26, 23);
+  doc.text(tagline, margin + 26, 23);
 
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(8);
-  doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth - margin, 28, { align: "right" });
+  doc.text(`${L.generated}: ${new Date().toLocaleDateString()}`, pageWidth - margin, 28, { align: "right" });
 
   let y = 42;
 
@@ -148,32 +158,32 @@ export async function exportResultPdf(result, appName = "Fara'id AI") {
     doc.setFont("helvetica", "normal");
   }
 
-  sectionHeading("Estate Summary");
+  sectionHeading(L.estateSummary);
   doc.setTextColor(40, 40, 40);
   doc.setFontSize(11);
-  doc.text(`Net Estate: ${Number(result.net_estate).toLocaleString()} ${result.currency}`, margin, y);
+  doc.text(`${L.netEstate}: ${Number(result.net_estate).toLocaleString()} ${result.currency}`, margin, y);
   y += 7;
-  doc.text(`Wasiyyah Applied: ${Number(result.wasiyyah_applied).toLocaleString()} ${result.currency}`, margin, y);
+  doc.text(`${L.wasiyyahApplied}: ${Number(result.wasiyyah_applied).toLocaleString()} ${result.currency}`, margin, y);
   y += 7;
   doc.setFont("helvetica", "bold");
   doc.setTextColor(r700, g700, b700);
   doc.text(
-    `Distributable Estate: ${Number(result.distributable_estate).toLocaleString()} ${result.currency}`,
+    `${L.distributable}: ${Number(result.distributable_estate).toLocaleString()} ${result.currency}`,
     margin,
     y
   );
   y += 12;
 
-  sectionHeading("Distribution Breakdown");
+  sectionHeading(L.distributionBreakdown);
 
   doc.setFillColor(r700, g700, b700);
   doc.rect(margin, y - 5, pageWidth - margin * 2, 7, "F");
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
-  doc.text("Heir", margin + 2, y);
-  doc.text("Share", margin + 95, y);
-  doc.text("Amount", pageWidth - margin - 2, y, { align: "right" });
+  doc.text(L.heir, margin + 2, y);
+  doc.text(L.share, margin + 95, y);
+  doc.text(L.amount, pageWidth - margin - 2, y, { align: "right" });
   y += 8;
 
   doc.setFont("helvetica", "normal");
@@ -188,7 +198,7 @@ export async function exportResultPdf(result, appName = "Fara'id AI") {
       doc.rect(margin, y - 5, pageWidth - margin * 2, 7, "F");
     }
     doc.setTextColor(30, 30, 30);
-    const name = `${b.label}${b.count > 1 ? ` x${b.count}` : ""}`;
+    const name = `${t.heirs?.[b.heir_type] || b.label}${b.count > 1 ? ` x${b.count}` : ""}`;
     doc.text(name, margin + 2, y);
     doc.text(`${b.share_fraction} (${b.share_percent}%)`, margin + 95, y);
     doc.setFont("helvetica", "bold");
@@ -202,7 +212,7 @@ export async function exportResultPdf(result, appName = "Fara'id AI") {
 
   if (result.notes?.length) {
     y += 6;
-    sectionHeading("Notes");
+    sectionHeading(L.notes);
     doc.setFontSize(9);
     doc.setTextColor(80, 80, 80);
     result.notes.forEach((note) => {
@@ -221,7 +231,22 @@ export async function exportResultPdf(result, appName = "Fara'id AI") {
   doc.save(`faraid-result-${Date.now()}.pdf`);
 }
 
-export async function exportResultDocx(result, appName = "Fara'id AI") {
+export async function exportResultDocx(result, t = {}) {
+  const appName = t.appName || "Fara'id AI";
+  const tagline = t.tagline || "Islamic Inheritance Intelligence";
+  const L = {
+    netEstate: t.netEstate || "Net Estate",
+    wasiyyahApplied: t.wasiyyahApplied || "Wasiyyah Applied",
+    distributable: t.distributable || "Distributable Estate",
+    notes: t.notesTitle || "Notes",
+    estateSummary: t.pdf?.estateSummary || "Estate Summary",
+    distributionBreakdown: t.pdf?.distributionBreakdown || "Distribution Breakdown",
+    heir: t.pdf?.heir || "Heir",
+    share: t.pdf?.share || "Share",
+    amount: t.pdf?.amount || "Amount",
+    generated: t.pdf?.generated || "Generated",
+  };
+
   let logoImage = null;
   try {
     const pngDataUrl = await svgToPngDataUrl(LOGO_SVG, 128);
@@ -241,7 +266,7 @@ export async function exportResultDocx(result, appName = "Fara'id AI") {
 
   const headerRow = new TableRow({
     tableHeader: true,
-    children: ["Heir", "Share", "Amount"].map(
+    children: [L.heir, L.share, L.amount].map(
       (h) =>
         new TableCell({
           width: { size: 33, type: WidthType.PERCENTAGE },
@@ -255,7 +280,7 @@ export async function exportResultDocx(result, appName = "Fara'id AI") {
     (b, i) =>
       new TableRow({
         children: [
-          new Paragraph(`${b.label}${b.count > 1 ? ` x${b.count}` : ""}`),
+          new Paragraph(`${t.heirs?.[b.heir_type] || b.label}${b.count > 1 ? ` x${b.count}` : ""}`),
           new Paragraph(`${b.share_fraction} (${b.share_percent}%)`),
           new Paragraph({
             children: [
@@ -290,25 +315,25 @@ export async function exportResultDocx(result, appName = "Fara'id AI") {
           }),
           new Paragraph({
             children: [
-              new TextRun({ text: "Islamic Inheritance Intelligence", italics: true, size: 20, color: "B8892F" }),
+              new TextRun({ text: tagline, italics: true, size: 20, color: "B8892F" }),
             ],
             border: { bottom: { color: "D9B65C", space: 6, style: "single", size: 6 } },
             spacing: { after: 200 },
           }),
           new Paragraph({
-            text: `Generated: ${new Date().toLocaleDateString()}`,
+            text: `${L.generated}: ${new Date().toLocaleDateString()}`,
             spacing: { after: 300 },
           }),
 
-          heading("Estate Summary"),
-          new Paragraph({ text: `Net Estate: ${Number(result.net_estate).toLocaleString()} ${result.currency}` }),
+          heading(L.estateSummary),
+          new Paragraph({ text: `${L.netEstate}: ${Number(result.net_estate).toLocaleString()} ${result.currency}` }),
           new Paragraph({
-            text: `Wasiyyah Applied: ${Number(result.wasiyyah_applied).toLocaleString()} ${result.currency}`,
+            text: `${L.wasiyyahApplied}: ${Number(result.wasiyyah_applied).toLocaleString()} ${result.currency}`,
           }),
           new Paragraph({
             children: [
               new TextRun({
-                text: `Distributable Estate: ${Number(result.distributable_estate).toLocaleString()} ${result.currency}`,
+                text: `${L.distributable}: ${Number(result.distributable_estate).toLocaleString()} ${result.currency}`,
                 bold: true,
                 color: "0C5F2F",
               }),
@@ -316,11 +341,11 @@ export async function exportResultDocx(result, appName = "Fara'id AI") {
             spacing: { after: 100 },
           }),
 
-          heading("Distribution Breakdown"),
+          heading(L.distributionBreakdown),
           new Table({ rows: [headerRow, ...dataRows], width: { size: 100, type: WidthType.PERCENTAGE } }),
 
           ...(result.notes?.length
-            ? [heading("Notes"), ...result.notes.map((n) => new Paragraph({ text: `• ${n}` }))]
+            ? [heading(L.notes), ...result.notes.map((n) => new Paragraph({ text: `• ${n}` }))]
             : []),
         ],
       },

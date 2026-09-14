@@ -28,14 +28,14 @@ export default function StepResult({ result, loading, error }) {
         </div>
         <div className="flex gap-2 shrink-0">
           <button
-            onClick={() => exportResultPdf(result)}
+            onClick={() => exportResultPdf(result, t)}
             className="text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center gap-1"
             title="Download PDF"
           >
             📄 PDF
           </button>
           <button
-            onClick={() => exportResultDocx(result)}
+            onClick={() => exportResultDocx(result, t)}
             className="text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center gap-1"
             title="Download Word"
           >
