@@ -26,6 +26,7 @@ def _build_result(payload: dict) -> dict:
     engine_result = calculate_faraid(heirs)
 
     heir_counts = {h["type"]: h["count"] for h in heirs if h.get("count", 0) > 0}
+    heir_names = {h["type"]: [n for n in (h.get("names") or []) if n and n.strip()] for h in heirs}
 
     breakdown = []
     for htype, frac in engine_result.shares.items():
@@ -39,6 +40,7 @@ def _build_result(payload: dict) -> dict:
             "heir_type": htype,
             "label": HEIR_LABELS.get(htype, htype.replace("_", " ").title()),
             "count": count,
+            "names": heir_names.get(htype) or None,
             "share_fraction": str(frac),
             "share_percent": round(float(frac) * 100, 4),
             "amount_total": round(float(frac) * distributable, 2),

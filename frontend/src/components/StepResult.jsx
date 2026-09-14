@@ -78,6 +78,9 @@ export default function StepResult({ result, loading, error }) {
               <div>
                 <div className="text-sm font-medium text-gray-800">
                   {t.heirs?.[b.heir_type] || b.label} {b.count > 1 ? `× ${b.count}` : ""}
+                  {b.names?.length > 0 && (
+                    <span className="text-gray-400 font-normal"> ({b.names.filter(Boolean).join(", ")})</span>
+                  )}
                 </div>
                 <div className="text-xs text-gray-400">
                   {b.share_fraction} ({b.share_percent}%)

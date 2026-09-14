@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 class HeirInput(BaseModel):
     type: str
     count: int = 1
+    names: Optional[List[str]] = None  # optional individual names
 
 
 class CaseCreate(BaseModel):

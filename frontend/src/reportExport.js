@@ -198,7 +198,8 @@ export async function exportResultPdf(result, t = {}) {
       doc.rect(margin, y - 5, pageWidth - margin * 2, 7, "F");
     }
     doc.setTextColor(30, 30, 30);
-    const name = `${t.heirs?.[b.heir_type] || b.label}${b.count > 1 ? ` x${b.count}` : ""}`;
+    const namesTxt = b.names?.length ? ` (${b.names.filter(Boolean).join(", ")})` : "";
+    const name = `${t.heirs?.[b.heir_type] || b.label}${b.count > 1 ? ` x${b.count}` : ""}${namesTxt}`;
     doc.text(name, margin + 2, y);
     doc.text(`${b.share_fraction} (${b.share_percent}%)`, margin + 95, y);
     doc.setFont("helvetica", "bold");
@@ -280,7 +281,11 @@ export async function exportResultDocx(result, t = {}) {
     (b, i) =>
       new TableRow({
         children: [
-          new Paragraph(`${t.heirs?.[b.heir_type] || b.label}${b.count > 1 ? ` x${b.count}` : ""}`),
+          new Paragraph(
+            `${t.heirs?.[b.heir_type] || b.label}${b.count > 1 ? ` x${b.count}` : ""}${
+              b.names?.length ? ` (${b.names.filter(Boolean).join(", ")})` : ""
+            }`
+          ),
           new Paragraph(`${b.share_fraction} (${b.share_percent}%)`),
           new Paragraph({
             children: [
