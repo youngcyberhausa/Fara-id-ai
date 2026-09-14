@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLang } from "../i18n/LanguageContext";
 import { CURRENCIES } from "../i18n/currencies";
+import { zakatApi } from "../api";
 
 const GOLD_NISAB_GRAMS = 85;
 const SILVER_NISAB_GRAMS = 595;
@@ -16,7 +17,7 @@ export default function ZakatCalculator({ onBack }) {
   const z = t.zakat;
 
   const [currency, setCurrency] = useState("NGN");
-  const [nisabBasis, setNisabBasis] = useState("silver"); // "gold" | "silver"
+  const [nisabBasis, setNisabBasis] = useState("silver");
   const [cash, setCash] = useState("");
   const [goldGrams, setGoldGrams] = useState("");
   const [goldPrice, setGoldPrice] = useState("");
@@ -26,6 +27,31 @@ export default function ZakatCalculator({ onBack }) {
   const [receivables, setReceivables] = useState("");
   const [debts, setDebts] = useState("");
   const [result, setResult] = useState(null);
+
+  const [pricesLoading, setPricesLoading] = useState(false);
+  const [priceStatus, setPriceStatus] = useState(null);
+
+  const fetchPrices = useCallback(async (curr) => {
+    setPricesLoading(true);
+    try {
+      const res = await zakatApi.getPrices(curr);
+      if (res.available) {
+        setGoldPrice(String(res.gold_price_per_gram));
+        setSilverPrice(String(res.silver_price_per_gram));
+        setPriceStatus("live");
+      } else {
+        setPriceStatus("manual");
+      }
+    } catch {
+      setPriceStatus("manual");
+    } finally {
+      setPricesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPrices(currency);
+  }, [currency, fetchPrices]);
 
   function calculate() {
     const goldValue = n(goldGrams) * n(goldPrice);
@@ -72,7 +98,27 @@ export default function ZakatCalculator({ onBack }) {
 
       <Field label={z.cashLabel} value={cash} onChange={setCash} />
 
-      <div className="mt-5 grid grid-cols-2 gap-3">
+      <div className="mt-5 flex items-center justify-between">
+        <span className="text-xs text-gray-500">
+          {pricesLoading
+            ? "⏳ …"
+            : priceStatus === "live"
+              ? `🟢 ${z.livePrice}`
+              : priceStatus === "manual"
+                ? `⚠️ ${z.manualPrice}`
+                : ""}
+        </span>
+        <button
+          type="button"
+          onClick={() => fetchPrices(currency)}
+          disabled={pricesLoading}
+          className="text-xs text-brand-600 hover:underline disabled:opacity-50"
+        >
+          🔄 {z.refreshPrices}
+        </button>
+      </div>
+
+      <div className="mt-2 grid grid-cols-2 gap-3">
         <Field label={z.goldGramsLabel} value={goldGrams} onChange={setGoldGrams} />
         <Field label={`${z.goldPriceLabel} (${currency})`} value={goldPrice} onChange={setGoldPrice} />
       </div>

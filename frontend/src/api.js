@@ -141,3 +141,7 @@ export const adminApi = {
 export const announcementsApi = {
   getActive: () => fetch(`${BASE_URL}/announcements/active`).then(handle),
 };
+
+export const zakatApi = {
+  getPrices: (currency) => fetch(`${BASE_URL}/zakat/prices?currency=${currency}`).then(handle),
+};

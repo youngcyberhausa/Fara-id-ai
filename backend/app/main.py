@@ -4,7 +4,7 @@ from sqlalchemy import text
 
 from . import models
 from .database import engine
-from .routers import cases, auth, support, payments, admin, announcements
+from .routers import cases, auth, support, payments, admin, announcements, zakat
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -46,6 +46,7 @@ app.include_router(support.router)
 app.include_router(payments.router)
 app.include_router(admin.router)
 app.include_router(announcements.router)
+app.include_router(zakat.router)
 
 
 @app.get("/api/health")
