@@ -1,4 +1,5 @@
 from typing import List, Optional
+import secrets
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -67,8 +68,6 @@ def _build_result(payload: dict) -> dict:
 
 @router.post("/calculate")
 def calculate(req: schemas.CalculateRequest, user: Optional[models.User] = Depends(get_optional_user)):
-    # Guests can calculate freely — only saving a case (below) requires an
-    # account, so login stays optional for the core calculator.
     result = _build_result(req.model_dump())
     return result
 
@@ -175,3 +174,49 @@ def delete_case(
     db.delete(db_case)
     db.commit()
     return {"deleted": True}
+
+
+@router.post("/cases/{case_id}/share")
+def share_case(
+    case_id: str,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    db_case = (
+        db.query(models.Case)
+        .filter(models.Case.id == case_id, models.Case.user_id == user.id)
+        .first()
+    )
+    if not db_case:
+        raise HTTPException(status_code=404, detail="Case not found")
+    if not db_case.share_token:
+        db_case.share_token = secrets.token_urlsafe(16)
+        db.commit()
+        db.refresh(db_case)
+    return {"share_token": db_case.share_token}
+
+
+@router.delete("/cases/{case_id}/share")
+def unshare_case(
+    case_id: str,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    db_case = (
+        db.query(models.Case)
+        .filter(models.Case.id == case_id, models.Case.user_id == user.id)
+        .first()
+    )
+    if not db_case:
+        raise HTTPException(status_code=404, detail="Case not found")
+    db_case.share_token = None
+    db.commit()
+    return {"shared": False}
+
+
+@router.get("/cases/shared/{token}", response_model=schemas.CaseOut)
+def get_shared_case(token: str, db: Session = Depends(get_db)):
+    db_case = db.query(models.Case).filter(models.Case.share_token == token).first()
+    if not db_case:
+        raise HTTPException(status_code=404, detail="Shared case not found")
+    return db_case

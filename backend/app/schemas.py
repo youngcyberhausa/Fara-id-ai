@@ -4,10 +4,7 @@ from pydantic import BaseModel, Field
 
 
 class HeirInput(BaseModel):
-    type: str  # e.g. "husband", "wife", "son", "daughter", "father", "mother",
-    #            "full_brother", "full_sister", "consanguine_brother",
-    #            "consanguine_sister", "uterine_brother", "uterine_sister",
-    #            "paternal_grandfather", "paternal_grandmother", "maternal_grandmother"
+    type: str
     count: int = 1
 
 
@@ -35,6 +32,7 @@ class CaseOut(BaseModel):
     wasiyyah_amount: float
     heirs: List[Dict[str, Any]]
     result: Optional[Dict[str, Any]] = None
+    share_token: Optional[str] = None
 
     class Config:
         from_attributes = True

@@ -45,6 +45,14 @@ export const api = {
 
   deleteCase: (id) =>
     fetch(`${BASE_URL}/cases/${id}`, { method: "DELETE", headers: authHeaders() }).then(handle),
+
+  shareCase: (id) =>
+    fetch(`${BASE_URL}/cases/${id}/share`, { method: "POST", headers: authHeaders() }).then(handle),
+
+  unshareCase: (id) =>
+    fetch(`${BASE_URL}/cases/${id}/share`, { method: "DELETE", headers: authHeaders() }).then(handle),
+
+  getSharedCase: (token) => fetch(`${BASE_URL}/cases/shared/${token}`).then(handle),
 };
 
 export const authApi = {

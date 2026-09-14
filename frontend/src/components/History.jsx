@@ -3,6 +3,89 @@ import { useLang } from "../i18n/LanguageContext";
 import { api } from "../api";
 import StepResult from "./StepResult";
 
+function ShareButton({ caseId, initialToken }) {
+  const [token, setToken] = useState(initialToken || null);
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const shareUrl = token ? `${window.location.origin}/?shared=${token}` : null;
+
+  async function turnOn() {
+    setBusy(true);
+    try {
+      const res = await api.shareCase(caseId);
+      setToken(res.share_token);
+    } catch {
+      // ignore — button just stays off
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function turnOff() {
+    setBusy(true);
+    try {
+      await api.unshareCase(caseId);
+      setToken(null);
+    } catch {
+      // ignore
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard blocked — link is still shown below for manual copy
+    }
+  }
+
+  if (!token) {
+    return (
+      <button
+        onClick={turnOn}
+        disabled={busy}
+        className="text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center gap-1 disabled:opacity-50"
+      >
+        👪 {busy ? "…" : "Raba da Iyali"}
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-4 rounded-lg border border-brand-200 bg-brand-50 px-3 py-3">
+      <div className="text-[11px] text-brand-700 font-medium mb-1.5">
+        Link na kallo kaɗai — kowa da ke da wannan link zai iya ganin sakamakon, ba tare da shiga account ba.
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          readOnly
+          value={shareUrl}
+          onClick={(e) => e.target.select()}
+          className="flex-1 min-w-0 text-xs bg-white border border-gray-200 rounded-md px-2 py-1.5 truncate"
+        />
+        <button
+          onClick={copyLink}
+          className="text-xs font-medium px-2.5 py-1.5 rounded-md bg-brand-600 text-white hover:bg-brand-700 shrink-0"
+        >
+          {copied ? "✓" : "Kwafa"}
+        </button>
+      </div>
+      <button
+        onClick={turnOff}
+        disabled={busy}
+        className="text-[11px] text-red-500 hover:text-red-700 mt-2 disabled:opacity-50"
+      >
+        {busy ? "…" : "Dakatar da Raba"}
+      </button>
+    </div>
+  );
+}
+
 export default function History({ initialQuery = "", onBack, onNewCase }) {
   const { t } = useLang();
   const [cases, setCases] = useState(null);
@@ -59,6 +142,7 @@ export default function History({ initialQuery = "", onBack, onNewCase }) {
           <h2 className="text-base font-semibold text-gray-900">
             {openCase.title || t.caseTitleLabel}
           </h2>
+          <ShareButton caseId={openCase.id} initialToken={openCase.share_token} />
           <StepResult result={openCase.result} loading={false} error={null} />
         </div>
       </div>
