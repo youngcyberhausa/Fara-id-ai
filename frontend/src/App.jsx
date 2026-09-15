@@ -254,18 +254,21 @@ function AppInner() {
       <IslamicWatermark />
       <NotificationBanner />
 
-      <header className="border-b border-gray-100 bg-white/90 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b border-gray-100 bg-white/90 backdrop-blur-sm sticky top-0 z-10 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={goToHome} className="flex items-center gap-3">
+            <button
+              onClick={goToHome}
+              className="flex items-center gap-3 rounded-lg -mx-1 px-1 py-0.5 hover:opacity-80"
+            >
               <Logo size={34} />
               <div className="text-left">
                 <div className="text-sm font-semibold text-gray-900 leading-tight">{t.appName}</div>
-                <div className="text-[11px] text-gray-400 leading-tight">{t.tagline}</div>
+                <div className="text-[11px] text-gray-400 leading-tight tracking-wide">{t.tagline}</div>
               </div>
             </button>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <ThemeToggle />
             <LanguageSwitcher />
             {!user && (
@@ -274,7 +277,7 @@ function AppInner() {
                   setPendingAction(null);
                   setShowLogin(true);
                 }}
-                className="px-3 py-1.5 text-sm rounded-lg bg-brand-600 text-white font-medium hover:bg-brand-700"
+                className="px-3.5 py-1.5 text-sm rounded-lg bg-brand-600 text-white font-medium hover:bg-brand-700"
               >
                 {t.loginBtn}
               </button>
@@ -283,7 +286,7 @@ function AppInner() {
               <div className="relative">
                 <button
                   onClick={() => setMenuOpen((v) => !v)}
-                  className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
+                  className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300"
                   aria-label="Menu"
                 >
                   ☰
@@ -291,7 +294,7 @@ function AppInner() {
                 {menuOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl border border-gray-100 shadow-lg z-20 overflow-hidden">
+                    <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl border border-gray-100 shadow-lg z-20 overflow-hidden py-1">
                       {user.is_admin && (
                         <>
                           <button
@@ -299,11 +302,11 @@ function AppInner() {
                               setMenuOpen(false);
                               goToAdmin();
                             }}
-                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 flex items-center gap-2.5"
                           >
-                            🛠 Admin Dashboard
+                            <span className="w-6 text-center">🛠</span> Admin Dashboard
                           </button>
-                          <div className="border-t border-gray-100" />
+                          <div className="border-t border-gray-100 mx-2" />
                         </>
                       )}
                       <button
@@ -311,19 +314,19 @@ function AppInner() {
                           setMenuOpen(false);
                           goToHistory();
                         }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 flex items-center gap-2.5"
                       >
-                        ⏱ {t.tileHistory}
+                        <span className="w-6 text-center">⏱</span> {t.tileHistory}
                       </button>
-                      <div className="border-t border-gray-100" />
+                      <div className="border-t border-gray-100 mx-2" />
                       <button
                         onClick={() => {
                           setMenuOpen(false);
                           logout();
                         }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                        className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2.5"
                       >
-                        ↪ {t.logout}
+                        <span className="w-6 text-center">↪</span> {t.logout}
                       </button>
                     </div>
                   </>
@@ -376,13 +379,16 @@ function AppInner() {
 
         {view === "wizard" && (
           <>
-        <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-gray-100 p-5 sm:p-7 shadow-md">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-semibold text-gray-900">{t.newCase}</h2>
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900">{t.newCase}</h2>
               <p className="text-sm text-gray-500 mt-0.5">{t.newCaseDesc}</p>
             </div>
-            <button onClick={goToHome} className="text-sm text-gray-500 hover:text-gray-700 shrink-0">
+            <button
+              onClick={goToHome}
+              className="text-sm text-gray-500 hover:text-gray-700 shrink-0 rounded-lg px-2 py-1 hover:bg-gray-50"
+            >
               ← {t.back}
             </button>
           </div>
@@ -399,11 +405,11 @@ function AppInner() {
             {step === "result" && <StepResult result={result} loading={loading} error={error} />}
           </div>
 
-          <div className="mt-6 flex items-center justify-between border-t border-gray-100 pt-4">
+          <div className="mt-6 flex items-center justify-between border-t border-gray-100 pt-5">
             <button
               onClick={goBack}
               disabled={stepIndex === 0}
-              className="px-4 py-2 text-sm rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 hover:bg-gray-50"
+              className="px-4 py-2.5 text-sm rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 hover:bg-gray-50 hover:border-gray-300 font-medium"
             >
               ← {t.back}
             </button>
@@ -411,7 +417,7 @@ function AppInner() {
             {step !== "result" ? (
               <button
                 onClick={goNext}
-                className="px-5 py-2 text-sm rounded-lg bg-brand-600 text-white font-medium hover:bg-brand-700"
+                className="px-6 py-2.5 text-sm rounded-lg bg-brand-600 text-white font-semibold hover:bg-brand-700"
               >
                 {step === "heirs" ? t.calculate : t.next} →
               </button>
@@ -419,16 +425,16 @@ function AppInner() {
               <div className="flex gap-2">
                 <button
                   onClick={handleNewCase}
-                  className="px-4 py-2 text-sm rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
+                  className="px-4 py-2.5 text-sm rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 font-medium"
                 >
                   {t.newCaseBtn}
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={saving || !!savedId}
-                  className="px-5 py-2 text-sm rounded-lg bg-brand-600 text-white font-medium hover:bg-brand-700 disabled:opacity-50"
+                  className="px-6 py-2.5 text-sm rounded-lg bg-brand-600 text-white font-semibold hover:bg-brand-700 disabled:opacity-50"
                 >
-                  {savedId ? "✓" : saving ? "…" : t.saveCase}
+                  {savedId ? "✓ " + t.saveCase : saving ? "…" : t.saveCase}
                 </button>
               </div>
             )}
