@@ -94,9 +94,26 @@ function saveBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-export async function exportResultPdf(result, t = {}) {
+async function loadPdfFont(doc, lang) {
+  const FONT_NAME = "AppFont";
+  if (lang === "ar") {
+    const { default: naskh } = await import("./fonts/NotoNaskhArabicRegular.js");
+    doc.addFileToVFS("NotoNaskhArabic-Regular.ttf", naskh);
+    doc.addFont("NotoNaskhArabic-Regular.ttf", FONT_NAME, "normal");
+    doc.addFont("NotoNaskhArabic-Regular.ttf", FONT_NAME, "bold");
+  } else {
+    const { default: sans } = await import("./fonts/NotoSansRegular.js");
+    doc.addFileToVFS("NotoSans-Regular.ttf", sans);
+    doc.addFont("NotoSans-Regular.ttf", FONT_NAME, "normal");
+    doc.addFont("NotoSans-Regular.ttf", FONT_NAME, "bold");
+  }
+  return FONT_NAME;
+}
+
+export async function exportResultPdf(result, t = {}, lang = "en") {
   const appName = t.appName || "Fara'id AI";
   const tagline = t.tagline || "Islamic Inheritance Intelligence";
+  const rtl = lang === "ar";
   const L = {
     netEstate: t.netEstate || "Net Estate",
     wasiyyahApplied: t.wasiyyahApplied || "Wasiyyah Applied",
@@ -111,6 +128,7 @@ export async function exportResultPdf(result, t = {}) {
   };
 
   const doc = new jsPDF();
+  const FONT = await loadPdfFont(doc, lang);
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 15;
   const [r700, g700, b700] = hexToRgb(BRAND[700]);
@@ -130,63 +148,75 @@ export async function exportResultPdf(result, t = {}) {
   }
 
   doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
+  doc.setFont(FONT, "bold");
   doc.setFontSize(18);
-  doc.text(appName, margin + 26, 16);
+  if (rtl) {
+    doc.text(appName, pageWidth - margin, 16, { align: "right" });
+  } else {
+    doc.text(appName, margin + 26, 16);
+  }
 
-  doc.setFont("helvetica", "normal");
+  doc.setFont(FONT, "normal");
   doc.setFontSize(9);
   doc.setTextColor(gr, gg, gb);
-  doc.text(tagline, margin + 26, 23);
+  if (rtl) {
+    doc.text(tagline, pageWidth - margin, 23, { align: "right" });
+  } else {
+    doc.text(tagline, margin + 26, 23);
+  }
 
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(8);
-  doc.text(`${L.generated}: ${new Date().toLocaleDateString()}`, pageWidth - margin, 28, { align: "right" });
+  doc.text(`${L.generated}: ${new Date().toLocaleDateString()}`, rtl ? margin : pageWidth - margin, 28, {
+    align: rtl ? "left" : "right",
+  });
 
   let y = 42;
 
   function sectionHeading(text) {
     doc.setTextColor(r600, g600, b600);
-    doc.setFont("helvetica", "bold");
+    doc.setFont(FONT, "bold");
     doc.setFontSize(12);
-    doc.text(text, margin, y);
+    doc.text(text, rtl ? pageWidth - margin : margin, y, rtl ? { align: "right" } : undefined);
     y += 3;
     doc.setDrawColor(gdr, gdg, gdb);
     doc.setLineWidth(0.5);
     doc.line(margin, y, pageWidth - margin, y);
     y += 7;
-    doc.setFont("helvetica", "normal");
+    doc.setFont(FONT, "normal");
+  }
+
+  function summaryLine(text, bold) {
+    doc.setFont(FONT, bold ? "bold" : "normal");
+    doc.text(text, rtl ? pageWidth - margin : margin, y, rtl ? { align: "right" } : undefined);
+    y += 7;
   }
 
   sectionHeading(L.estateSummary);
   doc.setTextColor(40, 40, 40);
   doc.setFontSize(11);
-  doc.text(`${L.netEstate}: ${Number(result.net_estate).toLocaleString()} ${result.currency}`, margin, y);
-  y += 7;
-  doc.text(`${L.wasiyyahApplied}: ${Number(result.wasiyyah_applied).toLocaleString()} ${result.currency}`, margin, y);
-  y += 7;
-  doc.setFont("helvetica", "bold");
+  summaryLine(`${L.netEstate}: ${Number(result.net_estate).toLocaleString()} ${result.currency}`, false);
+  summaryLine(`${L.wasiyyahApplied}: ${Number(result.wasiyyah_applied).toLocaleString()} ${result.currency}`, false);
   doc.setTextColor(r700, g700, b700);
-  doc.text(
+  summaryLine(
     `${L.distributable}: ${Number(result.distributable_estate).toLocaleString()} ${result.currency}`,
-    margin,
-    y
+    true
   );
-  y += 12;
+  y += 5;
 
   sectionHeading(L.distributionBreakdown);
 
   doc.setFillColor(r700, g700, b700);
   doc.rect(margin, y - 5, pageWidth - margin * 2, 7, "F");
   doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
+  doc.setFont(FONT, "bold");
   doc.setFontSize(9);
   doc.text(L.heir, margin + 2, y);
   doc.text(L.share, margin + 95, y);
   doc.text(L.amount, pageWidth - margin - 2, y, { align: "right" });
   y += 8;
 
-  doc.setFont("helvetica", "normal");
+  doc.setFont(FONT, "normal");
   doc.setFontSize(10);
   (result.breakdown || []).forEach((b, i) => {
     if (y > 275) {
@@ -202,12 +232,12 @@ export async function exportResultPdf(result, t = {}) {
     const name = `${t.heirs?.[b.heir_type] || b.label}${b.count > 1 ? ` x${b.count}` : ""}${namesTxt}`;
     doc.text(name, margin + 2, y);
     doc.text(`${b.share_fraction} (${b.share_percent}%)`, margin + 95, y);
-    doc.setFont("helvetica", "bold");
+    doc.setFont(FONT, "bold");
     doc.setTextColor(r700, g700, b700);
     doc.text(`${Number(b.amount_total).toLocaleString()} ${result.currency}`, pageWidth - margin - 2, y, {
       align: "right",
     });
-    doc.setFont("helvetica", "normal");
+    doc.setFont(FONT, "normal");
     y += 7;
   });
 

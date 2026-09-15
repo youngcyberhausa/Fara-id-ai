@@ -5,7 +5,7 @@ import { exportResultPdf, exportResultDocx } from "../reportExport";
 const Distribution3DChart = lazy(() => import("./Distribution3DChart"));
 
 export default function StepResult({ result, loading, error }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
 
   if (loading) {
     return <div className="py-10 text-center text-sm text-gray-400">…</div>;
@@ -28,7 +28,7 @@ export default function StepResult({ result, loading, error }) {
         </div>
         <div className="flex gap-2 shrink-0">
           <button
-            onClick={() => exportResultPdf(result, t)}
+            onClick={() => exportResultPdf(result, t, lang)}
             className="text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center gap-1"
             title="Download PDF"
           >
