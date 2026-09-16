@@ -19,6 +19,7 @@ import ChatWidget from "./components/ChatWidget";
 import SharedCase from "./components/SharedCase";
 import NotificationBanner from "./components/NotificationBanner";
 const AdminDashboard = lazy(() => import("./components/AdminDashboard"));
+const Dashboard = lazy(() => import("./components/Dashboard"));
 const FamilyRelations = lazy(() => import("./components/FamilyRelations"));
 const ZakatCalculator = lazy(() => import("./components/ZakatCalculator"));
 const IntroSplash = lazy(() => import("./components/IntroSplash"));
@@ -104,6 +105,7 @@ function AppInner() {
     setPendingAction(null);
     if (action === "save") handleSave();
     else if (action === "history") setView("history");
+    else if (action === "dashboard") setView("dashboard");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, showLogin]);
 
@@ -248,6 +250,14 @@ function AppInner() {
   function goToAdmin() {
     setView("admin");
   }
+  function goToDashboard() {
+    if (!user) {
+      setPendingAction("dashboard");
+      setShowLogin(true);
+      return;
+    }
+    setView("dashboard");
+  }
 
   return (
     <div className="min-h-screen relative">
@@ -295,6 +305,16 @@ function AppInner() {
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
                     <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl border border-gray-100 shadow-lg z-20 overflow-hidden py-1">
+                      <button
+                        onClick={() => {
+                          setMenuOpen(false);
+                          goToDashboard();
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        📊 Dashboard
+                      </button>
+                      <div className="border-t border-gray-100" />
                       {user.is_admin && (
                         <>
                           <button
@@ -338,6 +358,21 @@ function AppInner() {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 py-6">
+        {view === "dashboard" && (
+          <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
+            <Dashboard
+              onHome={goToHome}
+              onHistory={goToHistory}
+              onNewCase={handleNewCase}
+              onZakat={goToZakat}
+              onMenu={() => {
+                setView("home");
+                setMenuOpen(true);
+              }}
+            />
+          </Suspense>
+        )}
+
         {view === "home" && (
           <Home
             onNewCase={handleNewCase}
