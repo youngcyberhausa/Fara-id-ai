@@ -195,6 +195,9 @@ const en = {
   },
 
   welcomeBack: "Welcome back",
+  dashboardThisMonth: "Cases this month",
+  dashboardTrend: "Last 6 months",
+  dashboardRecent: "Recent activity",
   disclaimerTitle: "Disclaimer",
   footerDisclaimer: "Disclaimer",
   chatTitle: "Fara'id AI Guide",
@@ -406,6 +409,9 @@ const ha = {
   },
 
   welcomeBack: "Barka da dawowa",
+  dashboardThisMonth: "Cases wannan wata",
+  dashboardTrend: "Watanni 6 na baya",
+  dashboardRecent: "Ayyukan Kwanan Nan",
   disclaimerTitle: "Sanarwa",
   footerDisclaimer: "Sanarwa",
   chatTitle: "Jagoran Fara'id AI",
