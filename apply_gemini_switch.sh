@@ -1,3 +1,8 @@
+#!/bin/bash
+set -e
+echo "Switching AI Guide to Gemini..."
+
+cat > backend/app/routers/support.py << 'FARAID_EOF'
 import os
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
@@ -171,3 +176,7 @@ async def chat(req: ChatRequest, user: models.User = Depends(get_current_user)):
         raise HTTPException(status_code=502, detail=f"AI service error: {e.response.status_code}")
     except httpx.RequestError:
         raise HTTPException(status_code=502, detail="Could not reach the AI service.")
+FARAID_EOF
+echo "  updated: backend/app/routers/support.py"
+echo "Done. Now run:"
+echo "  git add -A && git commit -m 'Switch AI guide to Gemini free tier' && git push"
