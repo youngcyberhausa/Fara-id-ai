@@ -1,3 +1,1709 @@
+#!/bin/bash
+set -e
+echo "Applying Fara'id AI OTP forgot-password update..."
+
+mkdir -p "$(dirname "backend/app/security.py")"
+cat > "backend/app/security.py" << 'FARAID_EOF'
+"""
+Auth helpers: password hashing (PBKDF2, stdlib-only so no extra native
+dependency like bcrypt is required) and JWT issuing/verification.
+"""
+import os
+import hmac
+import hashlib
+import base64
+import time
+import secrets
+from typing import Optional
+
+import jwt
+
+# In production, set JWT_SECRET as a Railway environment variable.
+# Falls back to a default only for local/dev convenience.
+JWT_SECRET = os.environ.get("JWT_SECRET", "dev-insecure-secret-change-me")
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRE_SECONDS = 60 * 60 * 24 * 30  # 30 days
+
+PBKDF2_ITERATIONS = 260_000
+
+
+def hash_password(password: str) -> str:
+    salt = os.urandom(16)
+    dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, PBKDF2_ITERATIONS)
+    return f"pbkdf2_sha256${PBKDF2_ITERATIONS}${base64.b64encode(salt).decode()}${base64.b64encode(dk).decode()}"
+
+
+def verify_password(password: str, stored: str) -> bool:
+    try:
+        algo, iterations, salt_b64, hash_b64 = stored.split("$")
+        salt = base64.b64decode(salt_b64)
+        expected = base64.b64decode(hash_b64)
+        dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, int(iterations))
+        return hmac.compare_digest(dk, expected)
+    except Exception:
+        return False
+
+
+def create_access_token(user_id: str) -> str:
+    payload = {
+        "sub": user_id,
+        "iat": int(time.time()),
+        "exp": int(time.time()) + JWT_EXPIRE_SECONDS,
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+def decode_access_token(token: str) -> Optional[str]:
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return payload.get("sub")
+    except jwt.PyJWTError:
+        return None
+
+
+def generate_reset_token() -> str:
+    return secrets.token_urlsafe(32)
+
+
+def generate_otp_code() -> str:
+    """6-digit numeric OTP for password reset, e.g. '048213'."""
+    return f"{secrets.randbelow(1_000_000):06d}"
+FARAID_EOF
+echo "  updated: backend/app/security.py"
+
+mkdir -p "$(dirname "backend/app/schemas.py")"
+cat > "backend/app/schemas.py" << 'FARAID_EOF'
+from typing import List, Optional, Dict, Any
+from datetime import datetime
+from pydantic import BaseModel, Field
+
+
+class HeirInput(BaseModel):
+    type: str
+    count: int = 1
+    names: Optional[List[str]] = None  # optional individual names
+
+
+class CaseCreate(BaseModel):
+    title: Optional[str] = "Untitled Case"
+    estate_amount: float = 0
+    currency: str = "NGN"
+    funeral_cost: float = 0
+    debts: float = 0
+    wasiyyah_amount: float = 0
+    heirs: List[HeirInput] = Field(default_factory=list)
+
+
+class CaseUpdate(CaseCreate):
+    pass
+
+
+class CaseOut(BaseModel):
+    id: str
+    title: str
+    estate_amount: float
+    currency: str
+    funeral_cost: float
+    debts: float
+    wasiyyah_amount: float
+    heirs: List[Dict[str, Any]]
+    result: Optional[Dict[str, Any]] = None
+    share_token: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class CalculateRequest(BaseModel):
+    estate_amount: float
+    currency: str = "NGN"
+    funeral_cost: float = 0
+    debts: float = 0
+    wasiyyah_amount: float = 0
+    heirs: List[HeirInput]
+
+
+class UserOut(BaseModel):
+    id: str
+    email: str
+    name: Optional[str] = None
+    is_premium: bool = False
+    premium_expires_at: Optional[datetime] = None
+    is_admin: bool = False
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class RegisterRequest(BaseModel):
+    email: str
+    password: str = Field(min_length=6)
+    name: Optional[str] = None
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class GoogleAuthRequest(BaseModel):
+    id_token: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class VerifyOtpRequest(BaseModel):
+    email: str
+    otp: str
+
+
+class ResetPasswordRequest(BaseModel):
+    email: str
+    otp: str
+    new_password: str = Field(min_length=6)
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserOut
+
+
+class AnnouncementCreate(BaseModel):
+    title: str
+    message: Optional[str] = None
+    video_url: Optional[str] = None
+
+
+class AnnouncementOut(BaseModel):
+    id: str
+    title: str
+    message: Optional[str] = None
+    video_url: Optional[str] = None
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AdminStats(BaseModel):
+    total_users: int
+    total_cases: int
+    premium_users: int
+    new_users_7d: int
+FARAID_EOF
+echo "  updated: backend/app/schemas.py"
+
+mkdir -p "$(dirname "backend/app/email_utils.py")"
+cat > "backend/app/email_utils.py" << 'FARAID_EOF'
+"""
+Minimal SMTP email sender. Configure via environment variables:
+  SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
+If SMTP_HOST is not set, emails are just printed to the server logs
+(useful for local dev / before you've wired up a real mail provider).
+"""
+import os
+import smtplib
+from email.mime.text import MIMEText
+
+SMTP_HOST = os.environ.get("SMTP_HOST")
+SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+SMTP_USER = os.environ.get("SMTP_USER")
+SMTP_PASS = os.environ.get("SMTP_PASS")
+SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USER or "no-reply@faraid.ai")
+
+
+def send_password_reset_otp(to_email: str, otp: str) -> None:
+    subject = "Your Fara'id AI verification code"
+    body = (
+        f"Assalamu alaikum,\n\n"
+        f"Someone requested a password reset for this email on Fara'id AI.\n"
+        f"Your verification code is:\n\n{otp}\n\n"
+        f"This code expires in 10 minutes. If you didn't request this, "
+        f"you can safely ignore this email.\n"
+    )
+
+    if not SMTP_HOST or not SMTP_USER or not SMTP_PASS:
+        # Not configured yet — log so it's visible in the deploy logs
+        # during setup/testing, instead of silently failing.
+        print(f"[email:not-configured] Password reset OTP for {to_email}: {otp}")
+        return
+
+    msg = MIMEText(body)
+    msg["Subject"] = subject
+    msg["From"] = SMTP_FROM
+    msg["To"] = to_email
+
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASS)
+        server.sendmail(SMTP_FROM, [to_email], msg.as_string())
+FARAID_EOF
+echo "  updated: backend/app/email_utils.py"
+
+mkdir -p "$(dirname "backend/app/routers/auth.py")"
+cat > "backend/app/routers/auth.py" << 'FARAID_EOF'
+import os
+import secrets
+from datetime import datetime, timedelta
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from .. import models, schemas
+from ..database import get_db
+from ..security import hash_password, verify_password, create_access_token, generate_otp_code
+from ..deps import get_current_user
+from ..email_utils import send_password_reset_otp
+
+router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
+RESET_TOKEN_TTL_MINUTES = 10
+
+
+@router.post("/register", response_model=schemas.TokenResponse)
+def register(req: schemas.RegisterRequest, db: Session = Depends(get_db)):
+    email = req.email.strip().lower()
+    existing = db.query(models.User).filter(models.User.email == email).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="An account with this email already exists.")
+
+    user = models.User(
+        email=email,
+        name=req.name,
+        password_hash=hash_password(req.password),
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    token = create_access_token(user.id)
+    return schemas.TokenResponse(access_token=token, user=user)
+
+
+@router.post("/login", response_model=schemas.TokenResponse)
+def login(req: schemas.LoginRequest, db: Session = Depends(get_db)):
+    email = req.email.strip().lower()
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if not user or not user.password_hash or not verify_password(req.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid email or password.")
+
+    token = create_access_token(user.id)
+    return schemas.TokenResponse(access_token=token, user=user)
+
+
+@router.post("/google", response_model=schemas.TokenResponse)
+def google_auth(req: schemas.GoogleAuthRequest, db: Session = Depends(get_db)):
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(
+            status_code=503,
+            detail="Google sign-in is not configured on the server yet (missing GOOGLE_CLIENT_ID).",
+        )
+    try:
+        from google.oauth2 import id_token as google_id_token
+        from google.auth.transport import requests as google_requests
+
+        info = google_id_token.verify_oauth2_token(
+            req.id_token, google_requests.Request(), GOOGLE_CLIENT_ID
+        )
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid Google token.")
+
+    google_sub = info["sub"]
+    email = info.get("email", "").strip().lower()
+    name = info.get("name")
+
+    user = db.query(models.User).filter(models.User.google_sub == google_sub).first()
+    if not user and email:
+        user = db.query(models.User).filter(models.User.email == email).first()
+
+    if not user:
+        user = models.User(email=email, name=name, google_sub=google_sub)
+        db.add(user)
+    else:
+        if not user.google_sub:
+            user.google_sub = google_sub
+        if name and not user.name:
+            user.name = name
+
+    db.commit()
+    db.refresh(user)
+
+    token = create_access_token(user.id)
+    return schemas.TokenResponse(access_token=token, user=user)
+
+
+@router.get("/me", response_model=schemas.UserOut)
+def me(user: models.User = Depends(get_current_user)):
+    return user
+
+
+@router.post("/forgot-password")
+def forgot_password(req: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)):
+    email = req.email.strip().lower()
+    user = db.query(models.User).filter(models.User.email == email).first()
+
+    # Always return the same generic message, whether or not the account
+    # exists — this avoids leaking which emails are registered.
+    generic_response = {
+        "message": "If an account exists for that email, a verification code has been sent."
+    }
+
+    if not user:
+        return generic_response
+
+    otp = generate_otp_code()
+    user.reset_token = otp
+    user.reset_token_expires = datetime.utcnow() + timedelta(minutes=RESET_TOKEN_TTL_MINUTES)
+    db.commit()
+
+    try:
+        send_password_reset_otp(user.email, otp)
+    except Exception:
+        # Don't leak SMTP failures to the client; the generic message still
+        # applies. The server logs will show the failure for debugging.
+        pass
+
+    return generic_response
+
+
+def _get_valid_otp_user(db: Session, email: str, otp: str) -> models.User:
+    email = email.strip().lower()
+    user = (
+        db.query(models.User)
+        .filter(models.User.email == email, models.User.reset_token == otp)
+        .first()
+    )
+    if not user or not user.reset_token_expires or user.reset_token_expires < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="This code is invalid or has expired.")
+    return user
+
+
+@router.post("/verify-otp")
+def verify_otp(req: schemas.VerifyOtpRequest, db: Session = Depends(get_db)):
+    _get_valid_otp_user(db, req.email, req.otp)
+    return {"valid": True}
+
+
+@router.post("/reset-password")
+def reset_password(req: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
+    user = _get_valid_otp_user(db, req.email, req.otp)
+
+    user.password_hash = hash_password(req.new_password)
+    user.reset_token = None
+    user.reset_token_expires = None
+    db.commit()
+
+    return {"message": "Your password has been reset."}
+FARAID_EOF
+echo "  updated: backend/app/routers/auth.py"
+
+mkdir -p "$(dirname "frontend/src/api.js")"
+cat > "frontend/src/api.js" << 'FARAID_EOF'
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+
+let authToken = null;
+export function setAuthToken(token) {
+  authToken = token;
+}
+
+function authHeaders() {
+  return authToken ? { Authorization: `Bearer ${authToken}` } : {};
+}
+
+async function handle(res) {
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || "Request failed");
+  }
+  return res.json();
+}
+
+export const api = {
+  calculate: (payload) =>
+    fetch(`${BASE_URL}/calculate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(payload),
+    }).then(handle),
+
+  createCase: (payload) =>
+    fetch(`${BASE_URL}/cases`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(payload),
+    }).then(handle),
+
+  updateCase: (id, payload) =>
+    fetch(`${BASE_URL}/cases/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(payload),
+    }).then(handle),
+
+  listCases: () => fetch(`${BASE_URL}/cases`, { headers: authHeaders() }).then(handle),
+
+  getCase: (id) => fetch(`${BASE_URL}/cases/${id}`, { headers: authHeaders() }).then(handle),
+
+  deleteCase: (id) =>
+    fetch(`${BASE_URL}/cases/${id}`, { method: "DELETE", headers: authHeaders() }).then(handle),
+
+  shareCase: (id) =>
+    fetch(`${BASE_URL}/cases/${id}/share`, { method: "POST", headers: authHeaders() }).then(handle),
+
+  unshareCase: (id) =>
+    fetch(`${BASE_URL}/cases/${id}/share`, { method: "DELETE", headers: authHeaders() }).then(handle),
+
+  getSharedCase: (token) => fetch(`${BASE_URL}/cases/shared/${token}`).then(handle),
+};
+
+export const authApi = {
+  register: (email, password, name) =>
+    fetch(`${BASE_URL}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, name }),
+    }).then(handle),
+
+  login: (email, password) =>
+    fetch(`${BASE_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    }).then(handle),
+
+  google: (idToken) =>
+    fetch(`${BASE_URL}/auth/google`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id_token: idToken }),
+    }).then(handle),
+
+  me: () => fetch(`${BASE_URL}/auth/me`, { headers: authHeaders() }).then(handle),
+
+  forgotPassword: (email) =>
+    fetch(`${BASE_URL}/auth/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    }).then(handle),
+
+  verifyOtp: (email, otp) =>
+    fetch(`${BASE_URL}/auth/verify-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, otp }),
+    }).then(handle),
+
+  resetPassword: (email, otp, newPassword) =>
+    fetch(`${BASE_URL}/auth/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, otp, new_password: newPassword }),
+    }).then(handle),
+};
+
+export const supportApi = {
+  chat: (message, history) =>
+    fetch(`${BASE_URL}/support/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ message, history }),
+    }).then(handle),
+};
+
+export const paymentsApi = {
+  initialize: () =>
+    fetch(`${BASE_URL}/payments/initialize`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+    }).then(handle),
+
+  verify: (reference) =>
+    fetch(`${BASE_URL}/payments/verify/${reference}`, {
+      headers: authHeaders(),
+    }).then(handle),
+};
+
+export const adminApi = {
+  getStats: () => fetch(`${BASE_URL}/admin/stats`, { headers: authHeaders() }).then(handle),
+
+  listUsers: () => fetch(`${BASE_URL}/admin/users`, { headers: authHeaders() }).then(handle),
+
+  listAnnouncements: () =>
+    fetch(`${BASE_URL}/admin/announcements`, { headers: authHeaders() }).then(handle),
+
+  createAnnouncement: (payload) =>
+    fetch(`${BASE_URL}/admin/announcements`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(payload),
+    }).then(handle),
+
+  deactivateAnnouncement: (id) =>
+    fetch(`${BASE_URL}/admin/announcements/${id}`, {
+      method: "DELETE",
+      headers: authHeaders(),
+    }).then(handle),
+};
+
+export const announcementsApi = {
+  getActive: () => fetch(`${BASE_URL}/announcements/active`).then(handle),
+};
+
+export const zakatApi = {
+  getPrices: (currency) => fetch(`${BASE_URL}/zakat/prices?currency=${currency}`).then(handle),
+};
+FARAID_EOF
+echo "  updated: frontend/src/api.js"
+
+mkdir -p "$(dirname "frontend/src/components/OtpVerify.jsx")"
+cat > "frontend/src/components/OtpVerify.jsx" << 'FARAID_EOF'
+import { useState, useRef, useEffect } from "react";
+import { useLang } from "../i18n/LanguageContext";
+import { authApi } from "../api";
+import LanguageSwitcher from "./LanguageSwitcher";
+import Logo from "./Logo";
+
+const RESEND_SECONDS = 30;
+
+export default function OtpVerify({ email, onVerified, onBack }) {
+  const { t } = useLang();
+  const [digits, setDigits] = useState(["", "", "", "", "", ""]);
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [seconds, setSeconds] = useState(RESEND_SECONDS);
+  const inputRefs = useRef([]);
+
+  useEffect(() => {
+    if (seconds <= 0) return;
+    const id = setInterval(() => setSeconds((s) => s - 1), 1000);
+    return () => clearInterval(id);
+  }, [seconds]);
+
+  useEffect(() => {
+    inputRefs.current[0]?.focus();
+  }, []);
+
+  function setDigitAt(index, value) {
+    setDigits((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  }
+
+  function handleChange(index, raw) {
+    const value = raw.replace(/\D/g, "");
+    if (!value) {
+      setDigitAt(index, "");
+      return;
+    }
+    // Handle paste of the full code into one box.
+    if (value.length > 1) {
+      const chars = value.slice(0, 6).split("");
+      setDigits((prev) => {
+        const next = [...prev];
+        chars.forEach((c, i) => {
+          if (index + i < 6) next[index + i] = c;
+        });
+        return next;
+      });
+      const last = Math.min(index + chars.length, 5);
+      inputRefs.current[last]?.focus();
+      return;
+    }
+    setDigitAt(index, value);
+    if (index < 5) inputRefs.current[index + 1]?.focus();
+  }
+
+  function handleKeyDown(index, e) {
+    if (e.key === "Backspace" && !digits[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  }
+
+  const code = digits.join("");
+
+  async function handleVerify(e) {
+    e?.preventDefault();
+    if (code.length !== 6) return;
+    setError(null);
+    setBusy(true);
+    try {
+      await authApi.verifyOtp(email, code);
+      onVerified(code);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleResend() {
+    setResending(true);
+    setError(null);
+    try {
+      await authApi.forgotPassword(email);
+      setSeconds(RESEND_SECONDS);
+      setDigits(["", "", "", "", "", ""]);
+      inputRefs.current[0]?.focus();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setResending(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
+      <div className="w-full max-w-sm">
+        <div className="flex justify-end mb-3">
+          <LanguageSwitcher />
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-center">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Logo size={30} />
+            <span className="text-sm font-semibold text-gray-900">{t.appName}</span>
+          </div>
+
+          <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-600 to-brand-700 flex items-center justify-center text-2xl shadow-sm mb-4">
+            🔒
+          </div>
+
+          <h1 className="text-lg font-semibold text-gray-900">
+            {t.otpTitle || "Verify Your OTP"}
+          </h1>
+          <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">
+            {(t.otpDesc || "We've sent a 6-digit verification code to").replace(
+              "{email}",
+              ""
+            )}
+            <br />
+            <span className="font-medium text-gray-700">{email}</span>
+          </p>
+
+          <form onSubmit={handleVerify} className="mt-6">
+            <div className="flex justify-center gap-2" dir="ltr">
+              {digits.map((d, i) => (
+                <input
+                  key={i}
+                  ref={(el) => (inputRefs.current[i] = el)}
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={d}
+                  onChange={(e) => handleChange(i, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(i, e)}
+                  className={`w-11 h-13 sm:w-12 sm:h-14 text-center text-lg font-semibold rounded-xl border-2 outline-none transition ${
+                    d
+                      ? "border-brand-500 text-brand-700 bg-brand-50"
+                      : "border-gray-200 text-gray-900 focus:border-brand-400"
+                  }`}
+                />
+              ))}
+            </div>
+
+            {error && (
+              <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mt-4">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={busy || code.length !== 6}
+              className="w-full mt-5 py-2.5 rounded-lg bg-gradient-to-r from-brand-600 to-brand-700 text-white text-sm font-semibold hover:opacity-95 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {busy ? "…" : (t.otpVerifyBtn || "VERIFY OTP")} {!busy && "→"}
+            </button>
+          </form>
+
+          <div className="mt-4 text-xs text-gray-500">
+            {seconds > 0 ? (
+              <>
+                {t.otpResendIn || "Resend OTP in"}{" "}
+                <span className="font-semibold text-brand-700">{seconds}s</span>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resending}
+                className="text-brand-700 font-medium hover:underline disabled:opacity-50"
+              >
+                {resending ? "…" : t.otpResendBtn || "Resend code"}
+              </button>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={onBack}
+            className="w-full text-center text-xs text-gray-400 hover:text-gray-600 mt-5"
+          >
+            ← {t.backToLogin}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+FARAID_EOF
+echo "  updated: frontend/src/components/OtpVerify.jsx"
+
+mkdir -p "$(dirname "frontend/src/components/ResetPassword.jsx")"
+cat > "frontend/src/components/ResetPassword.jsx" << 'FARAID_EOF'
+import { useState } from "react";
+import { useLang } from "../i18n/LanguageContext";
+import { authApi } from "../api";
+import LanguageSwitcher from "./LanguageSwitcher";
+import Logo from "./Logo";
+
+export default function ResetPassword({ email, otp, onDone }) {
+  const { t } = useLang();
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState(null);
+  const [done, setDone] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError(null);
+    setBusy(true);
+    try {
+      await authApi.resetPassword(email, otp, password);
+      setDone(true);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
+      <div className="w-full max-w-sm">
+        <div className="flex justify-end mb-3">
+          <LanguageSwitcher />
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <div className="flex items-center gap-3 mb-5">
+            <Logo size={38} />
+            <div>
+              <div className="text-sm font-semibold text-gray-900">{t.appName}</div>
+              <div className="text-[11px] text-gray-400">{t.tagline}</div>
+            </div>
+          </div>
+
+          {done ? (
+            <>
+              <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-3">
+                {t.resetSuccess}
+              </div>
+              <button
+                onClick={onDone}
+                className="w-full mt-4 py-2.5 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700"
+              >
+                {t.backToLogin}
+              </button>
+            </>
+          ) : (
+            <>
+              <h1 className="text-lg font-semibold text-gray-900">{t.resetPasswordTitle}</h1>
+              <p className="text-sm text-gray-500 mt-1">{t.resetPasswordDesc}</p>
+
+              <form onSubmit={handleSubmit} className="mt-5 space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-600">{t.newPasswordLabel}</label>
+                  <div className="relative mt-1">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      required
+                      minLength={6}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full rounded-lg border border-gray-200 px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+                    >
+                      {showPassword ? "🙈" : "👁"}
+                    </button>
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                    {error === "This code is invalid or has expired."
+                      ? t.invalidResetLink || "This code is invalid or has expired."
+                      : error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="w-full py-2.5 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50"
+                >
+                  {busy ? "…" : t.resetPasswordBtn}
+                </button>
+              </form>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+FARAID_EOF
+echo "  updated: frontend/src/components/ResetPassword.jsx"
+
+mkdir -p "$(dirname "frontend/src/components/Login.jsx")"
+cat > "frontend/src/components/Login.jsx" << 'FARAID_EOF'
+import { useState, useRef, useEffect } from "react";
+import { useLang } from "../i18n/LanguageContext";
+import { useAuth } from "../AuthContext";
+import { authApi } from "../api";
+import LanguageSwitcher from "./LanguageSwitcher";
+import ThemeToggle from "./ThemeToggle";
+import Logo from "./Logo";
+import OtpVerify from "./OtpVerify";
+import ResetPassword from "./ResetPassword";
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+
+export default function Login() {
+  const { t } = useLang();
+  const { login, register, loginWithGoogle } = useAuth();
+  const [mode, setMode] = useState("login"); // "login" | "register" | "forgot" | "otp" | "reset-new"
+  const [resetOtp, setResetOtp] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [name, setName] = useState("");
+  const [error, setError] = useState(null);
+  const [info, setInfo] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const googleDivRef = useRef(null);
+
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID || !window.google || !googleDivRef.current) return;
+    try {
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async (response) => {
+          setError(null);
+          setBusy(true);
+          try {
+            await loginWithGoogle(response.credential);
+          } catch (e) {
+            setError(e.message);
+          } finally {
+            setBusy(false);
+          }
+        },
+      });
+      window.google.accounts.id.renderButton(googleDivRef.current, {
+        theme: "outline",
+        size: "large",
+        width: 320,
+        text: mode === "register" ? "signup_with" : "signin_with",
+      });
+    } catch {
+      // Google script not ready yet — ignore, button simply won't render.
+    }
+  }, [mode, loginWithGoogle]);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError(null);
+    setInfo(null);
+    setBusy(true);
+    try {
+      if (mode === "forgot") {
+        await authApi.forgotPassword(email.trim());
+        setMode("otp");
+      } else if (mode === "register") {
+        await register(email.trim(), password, name.trim() || undefined);
+      } else {
+        await login(email.trim(), password);
+      }
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (mode === "otp") {
+    return (
+      <OtpVerify
+        email={email.trim()}
+        onVerified={(otp) => {
+          setResetOtp(otp);
+          setMode("reset-new");
+        }}
+        onBack={() => {
+          setMode("forgot");
+          setError(null);
+          setInfo(null);
+        }}
+      />
+    );
+  }
+
+  if (mode === "reset-new") {
+    return (
+      <ResetPassword
+        email={email.trim()}
+        otp={resetOtp}
+        onDone={() => {
+          setMode("login");
+          setPassword("");
+          setResetOtp("");
+          setInfo(t.resetSuccess);
+        }}
+      />
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
+      <div className="w-full max-w-sm">
+        <div className="flex justify-end gap-2 mb-3">
+          <ThemeToggle />
+          <LanguageSwitcher />
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <div className="flex items-center gap-3 mb-5">
+          <Logo size={38} />
+          <div>
+            <div className="text-sm font-semibold text-gray-900">{t.appName}</div>
+            <div className="text-[11px] text-gray-400">{t.tagline}</div>
+          </div>
+        </div>
+
+        <h1 className="text-lg font-semibold text-gray-900">
+          {mode === "login" ? t.loginTitle : mode === "register" ? t.registerTitle : t.forgotPasswordTitle}
+        </h1>
+        <p className="text-sm text-gray-500 mt-1">
+          {mode === "login" ? t.loginDesc : mode === "register" ? t.registerDesc : t.forgotPasswordDesc}
+        </p>
+
+        <form onSubmit={handleSubmit} className="mt-5 space-y-3">
+          {mode === "register" && (
+            <div>
+              <label className="text-xs font-medium text-gray-600">{t.nameLabel}</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+              />
+            </div>
+          )}
+          <div>
+            <label className="text-xs font-medium text-gray-600">{t.emailLabel}</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+            />
+          </div>
+          {mode !== "forgot" && (
+            <div>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-gray-600">{t.passwordLabel}</label>
+                {mode === "login" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("forgot");
+                      setError(null);
+                      setInfo(null);
+                    }}
+                    className="text-[11px] text-brand-700 font-medium"
+                  >
+                    {t.forgotPasswordLink}
+                  </button>
+                )}
+              </div>
+              <div className="relative mt-1">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+                >
+                  {showPassword ? "🙈" : "👁"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+              {error}
+            </div>
+          )}
+          {info && (
+            <div className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
+              {info}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={busy}
+            className="w-full py-2.5 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50"
+          >
+            {busy
+              ? "…"
+              : mode === "login"
+              ? t.loginBtn
+              : mode === "register"
+              ? t.registerBtn
+              : t.sendResetLink}
+          </button>
+
+          {mode === "forgot" && (
+            <button
+              type="button"
+              onClick={() => {
+                setMode("login");
+                setError(null);
+                setInfo(null);
+              }}
+              className="w-full text-center text-xs text-gray-500 hover:text-gray-700"
+            >
+              ← {t.backToLogin}
+            </button>
+          )}
+        </form>
+
+        {mode !== "forgot" && (
+        <>
+        <div className="flex items-center gap-3 my-4">
+          <div className="flex-1 h-px bg-gray-100" />
+          <span className="text-[11px] text-gray-400">{t.orLabel}</span>
+          <div className="flex-1 h-px bg-gray-100" />
+        </div>
+
+        <div className="flex justify-center" ref={googleDivRef} />
+        {!GOOGLE_CLIENT_ID && (
+          <p className="text-[11px] text-gray-400 text-center mt-2">{t.googleUnavailable}</p>
+        )}
+
+        <div className="text-center text-xs text-gray-500 mt-5">
+          {mode === "login" ? (
+            <>
+              {t.noAccount}{" "}
+              <button
+                type="button"
+                onClick={() => setMode("register")}
+                className="text-brand-700 font-medium"
+              >
+                {t.registerBtn}
+              </button>
+            </>
+          ) : (
+            <>
+              {t.haveAccount}{" "}
+              <button
+                type="button"
+                onClick={() => setMode("login")}
+                className="text-brand-700 font-medium"
+              >
+                {t.loginBtn}
+              </button>
+            </>
+          )}
+        </div>
+        </>
+        )}
+        </div>
+        <div className="flex items-center justify-center gap-3 text-[11px] text-gray-400 mt-4">
+          <a href="/about" className="hover:text-gray-600">{t.footerAbout}</a>
+          <span>·</span>
+          <a href="/terms" className="hover:text-gray-600">{t.footerTerms}</a>
+          <span>·</span>
+          <a href="/privacy" className="hover:text-gray-600">{t.footerPrivacy}</a>
+          <span>·</span>
+          <a href="/disclaimer" className="hover:text-gray-600">{t.footerDisclaimer}</a>
+        </div>
+      </div>
+    </div>
+  );
+}
+FARAID_EOF
+echo "  updated: frontend/src/components/Login.jsx"
+
+mkdir -p "$(dirname "frontend/src/App.jsx")"
+cat > "frontend/src/App.jsx" << 'FARAID_EOF'
+import { useState, useEffect, lazy, Suspense } from "react";
+import { LanguageProvider, useLang } from "./i18n/LanguageContext";
+import { useAuth } from "./AuthContext";
+import Logo from "./components/Logo";
+import LanguageSwitcher from "./components/LanguageSwitcher";
+import ThemeToggle from "./components/ThemeToggle";
+import { initAds, maybeShowInterstitial } from "./ads.js";
+import IslamicWatermark from "./components/IslamicWatermark";
+import Login from "./components/Login";
+import AboutUs from "./components/AboutUs";
+import Terms from "./components/Terms";
+import PrivacyPolicy from "./components/PrivacyPolicy";
+import Disclaimer from "./components/Disclaimer";
+import Home from "./components/Home";
+import History from "./components/History";
+import Learn from "./components/Learn";
+import ChatWidget from "./components/ChatWidget";
+import SharedCase from "./components/SharedCase";
+import NotificationBanner from "./components/NotificationBanner";
+const AdminDashboard = lazy(() => import("./components/AdminDashboard"));
+const Dashboard = lazy(() => import("./components/Dashboard"));
+const FamilyRelations = lazy(() => import("./components/FamilyRelations"));
+const ZakatCalculator = lazy(() => import("./components/ZakatCalculator"));
+const IntroSplash = lazy(() => import("./components/IntroSplash"));
+import StepTabs, { STEPS } from "./components/StepTabs";
+import StepEstate from "./components/StepEstate";
+import StepDeductions from "./components/StepDeductions";
+import StepWasiyyah from "./components/StepWasiyyah";
+import StepHeirs from "./components/StepHeirs";
+import StepResult from "./components/StepResult";
+import { api } from "./api";
+
+function AppInner() {
+  const { t } = useLang();
+  const { user, loading: authLoading, logout } = useAuth();
+
+  const [sharedToken, setSharedToken] = useState(
+    () => new URLSearchParams(window.location.search).get("shared")
+  );
+
+  useEffect(() => {
+    if (authLoading) return;
+    initAds();
+  }, [authLoading]);
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    const client = import.meta.env.VITE_ADSENSE_CLIENT;
+    if (!client) return;
+    if (document.querySelector("script[data-adsbygoogle]")) return;
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${client}`;
+    script.crossOrigin = "anonymous";
+    script.dataset.adsbygoogle = "true";
+    document.head.appendChild(script);
+  }, []);
+
+  const [page, setPage] = useState(() => {
+    const p = window.location.pathname;
+    if (p === "/about") return "about";
+    if (p === "/terms") return "terms";
+    if (p === "/privacy") return "privacy";
+    if (p === "/disclaimer") return "disclaimer";
+    return "app";
+  });
+
+  function navigate(path, name) {
+    window.history.pushState({}, "", path);
+    setPage(name);
+  }
+  function goHome() {
+    window.history.pushState({}, "", "/");
+    setPage("app");
+  }
+  const [view, setView] = useState("home");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [historyQuery, setHistoryQuery] = useState("");
+  const [stepIndex, setStepIndex] = useState(0);
+  const [data, setData] = useState({
+    title: "",
+    estate_amount: 0,
+    currency: "NGN",
+    funeral_cost: 0,
+    debts: 0,
+    wasiyyah_amount: 0,
+  });
+  const [heirs, setHeirs] = useState([]);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [savedId, setSavedId] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
+
+  useEffect(() => {
+    if (!user || !showLogin) return;
+    setShowLogin(false);
+    const action = pendingAction;
+    setPendingAction(null);
+    if (action === "save") handleSave();
+    else if (action === "history") setView("history");
+    else if (action === "dashboard") setView("dashboard");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, showLogin]);
+
+  const step = STEPS[stepIndex];
+
+  if (sharedToken) {
+    return (
+      <SharedCase
+        token={sharedToken}
+        onClose={() => {
+          window.history.replaceState({}, "", "/");
+          setSharedToken(null);
+        }}
+      />
+    );
+  }
+
+  if (showSplash) {
+    return (
+      <Suspense
+        fallback={
+          <div className="fixed inset-0 z-50 bg-[#020806] flex items-center justify-center">
+            <div
+              className="text-2xl font-bold animate-pulse"
+              style={{ color: "#d9b65c", letterSpacing: "6px" }}
+            >
+              FARA'ID AI
+            </div>
+          </div>
+        }
+      >
+        <IntroSplash onFinish={() => setShowSplash(false)} />
+      </Suspense>
+    );
+  }
+
+  if (page === "about") return <AboutUs onBack={goHome} />;
+  if (page === "terms") return <Terms onBack={goHome} />;
+  if (page === "privacy") return <PrivacyPolicy onBack={goHome} />;
+  if (page === "disclaimer") return <Disclaimer onBack={goHome} />;
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-sm text-gray-400">
+        {t.loadingAuth}
+      </div>
+    );
+  }
+
+  async function goNext() {
+    if (step === "heirs") {
+      setStepIndex(stepIndex + 1);
+      setLoading(true);
+      setError(null);
+      try {
+        const payload = { ...data, heirs };
+        const res = await api.calculate(payload);
+        setResult(res);
+        maybeShowInterstitial();
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    setStepIndex(Math.min(stepIndex + 1, STEPS.length - 1));
+  }
+
+  function goBack() {
+    setStepIndex(Math.max(stepIndex - 1, 0));
+  }
+
+  async function handleSave() {
+    if (!user) {
+      setPendingAction("save");
+      setShowLogin(true);
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload = { ...data, heirs };
+      const res = await api.createCase(payload);
+      setSavedId(res.id);
+      maybeShowInterstitial();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleNewCase() {
+    setData({
+      title: "",
+      estate_amount: 0,
+      currency: "NGN",
+      funeral_cost: 0,
+      debts: 0,
+      wasiyyah_amount: 0,
+    });
+    setHeirs([]);
+    setResult(null);
+    setSavedId(null);
+    setStepIndex(0);
+    setView("wizard");
+  }
+
+  function goToHome() {
+    setView("home");
+  }
+  function goToHistory(query = "") {
+    if (!user) {
+      setPendingAction("history");
+      setShowLogin(true);
+      return;
+    }
+    setHistoryQuery(query);
+    setView("history");
+  }
+  function goToLearn() {
+    setView("learn");
+  }
+  function goToRelations() {
+    setView("relations");
+  }
+  function goToZakat() {
+    setView("zakat");
+  }
+  function goToAdmin() {
+    setView("admin");
+  }
+  function goToDashboard() {
+    if (!user) {
+      setPendingAction("dashboard");
+      setShowLogin(true);
+      return;
+    }
+    setView("dashboard");
+  }
+
+  return (
+    <div className="min-h-screen relative">
+      <IslamicWatermark />
+      <NotificationBanner />
+
+      <header className="border-b border-gray-100 bg-white/90 backdrop-blur-sm sticky top-0 z-10 shadow-sm">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={goToHome}
+              className="flex items-center gap-3 rounded-lg -mx-1 px-1 py-0.5 hover:opacity-80"
+            >
+              <Logo size={34} />
+              <div className="text-left">
+                <div className="text-sm font-semibold text-gray-900 leading-tight">{t.appName}</div>
+                <div className="text-[11px] text-gray-400 leading-tight tracking-wide">{t.tagline}</div>
+              </div>
+            </button>
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <ThemeToggle />
+            <LanguageSwitcher />
+            {!user && (
+              <button
+                onClick={() => {
+                  setPendingAction(null);
+                  setShowLogin(true);
+                }}
+                className="px-3.5 py-1.5 text-sm rounded-lg bg-brand-600 text-white font-medium hover:bg-brand-700"
+              >
+                {t.loginBtn}
+              </button>
+            )}
+            {user && (
+              <div className="relative">
+                <button
+                  onClick={() => setMenuOpen((v) => !v)}
+                  className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300"
+                  aria-label="Menu"
+                >
+                  ☰
+                </button>
+                {menuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                    <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl border border-gray-100 shadow-lg z-20 overflow-hidden py-1">
+                      <button
+                        onClick={() => {
+                          setMenuOpen(false);
+                          goToDashboard();
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        📊 Dashboard
+                      </button>
+                      <div className="border-t border-gray-100" />
+                      {user.is_admin && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setMenuOpen(false);
+                              goToAdmin();
+                            }}
+                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 flex items-center gap-2.5"
+                          >
+                            <span className="w-6 text-center">🛠</span> Admin Dashboard
+                          </button>
+                          <div className="border-t border-gray-100 mx-2" />
+                        </>
+                      )}
+                      <button
+                        onClick={() => {
+                          setMenuOpen(false);
+                          goToHistory();
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 flex items-center gap-2.5"
+                      >
+                        <span className="w-6 text-center">⏱</span> {t.tileHistory}
+                      </button>
+                      <div className="border-t border-gray-100 mx-2" />
+                      <button
+                        onClick={() => {
+                          setMenuOpen(false);
+                          logout();
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2.5"
+                      >
+                        <span className="w-6 text-center">↪</span> {t.logout}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-5xl mx-auto px-4 py-6">
+        {view === "dashboard" && (
+          <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
+            <Dashboard
+              onHome={goToHome}
+              onHistory={goToHistory}
+              onNewCase={handleNewCase}
+              onZakat={goToZakat}
+              onMenu={() => {
+                setView("home");
+                setMenuOpen(true);
+              }}
+            />
+          </Suspense>
+        )}
+
+        {view === "home" && (
+          <Home
+            onNewCase={handleNewCase}
+            onHistory={() => goToHistory()}
+            onLearn={goToLearn}
+            onRelations={goToRelations}
+            onZakat={goToZakat}
+            onSearch={(q) => goToHistory(q)}
+          />
+        )}
+
+        {view === "zakat" && (
+          <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
+            <ZakatCalculator onBack={goToHome} />
+          </Suspense>
+        )}
+
+        {view === "admin" && user?.is_admin && (
+          <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
+            <AdminDashboard onBack={goToHome} />
+          </Suspense>
+        )}
+
+        {view === "relations" && (
+          <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
+            <FamilyRelations onBack={goToHome} />
+          </Suspense>
+        )}
+
+        {view === "history" && (
+          <History
+            initialQuery={historyQuery}
+            onBack={goToHome}
+            onNewCase={handleNewCase}
+          />
+        )}
+
+        {view === "learn" && <Learn onBack={goToHome} />}
+
+        {view === "wizard" && (
+          <>
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-gray-100 p-5 sm:p-7 shadow-md">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900">{t.newCase}</h2>
+              <p className="text-sm text-gray-500 mt-0.5">{t.newCaseDesc}</p>
+            </div>
+            <button
+              onClick={goToHome}
+              className="text-sm text-gray-500 hover:text-gray-700 shrink-0 rounded-lg px-2 py-1 hover:bg-gray-50"
+            >
+              ← {t.back}
+            </button>
+          </div>
+
+          <div className="mt-4">
+            <StepTabs current={step} />
+          </div>
+
+          <div className="mt-6 min-h-[280px]">
+            {step === "estate" && <StepEstate data={data} setData={setData} />}
+            {step === "deductions" && <StepDeductions data={data} setData={setData} />}
+            {step === "wasiyyah" && <StepWasiyyah data={data} setData={setData} />}
+            {step === "heirs" && <StepHeirs heirs={heirs} setHeirs={setHeirs} />}
+            {step === "result" && <StepResult result={result} loading={loading} error={error} />}
+          </div>
+
+          <div className="mt-6 flex items-center justify-between border-t border-gray-100 pt-5">
+            <button
+              onClick={goBack}
+              disabled={stepIndex === 0}
+              className="px-4 py-2.5 text-sm rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 hover:bg-gray-50 hover:border-gray-300 font-medium"
+            >
+              ← {t.back}
+            </button>
+
+            {step !== "result" ? (
+              <button
+                onClick={goNext}
+                className="px-6 py-2.5 text-sm rounded-lg bg-brand-600 text-white font-semibold hover:bg-brand-700"
+              >
+                {step === "heirs" ? t.calculate : t.next} →
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  onClick={handleNewCase}
+                  className="px-4 py-2.5 text-sm rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 font-medium"
+                >
+                  {t.newCaseBtn}
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving || !!savedId}
+                  className="px-6 py-2.5 text-sm rounded-lg bg-brand-600 text-white font-semibold hover:bg-brand-700 disabled:opacity-50"
+                >
+                  {savedId ? "✓ " + t.saveCase : saving ? "…" : t.saveCase}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+          </>
+        )}
+
+        <div className="text-center text-[11px] text-gray-400 mt-8 pb-2">
+          {t.appName} · {t.scholarBadge}
+        </div>
+        <div className="flex items-center justify-center gap-4 text-[11px] text-gray-400 pb-3">
+          <button onClick={() => navigate("/about", "about")} className="hover:text-gray-600">
+            {t.footerAbout}
+          </button>
+          <span>·</span>
+          <button onClick={() => navigate("/terms", "terms")} className="hover:text-gray-600">
+            {t.footerTerms}
+          </button>
+          <span>·</span>
+          <button onClick={() => navigate("/privacy", "privacy")} className="hover:text-gray-600">
+            {t.footerPrivacy}
+          </button>
+          <span>·</span>
+          <button onClick={() => navigate("/disclaimer", "disclaimer")} className="hover:text-gray-600">
+            {t.footerDisclaimer}
+          </button>
+        </div>
+        <div className="flex items-center justify-center gap-4 pb-6">
+          <a
+            href="https://x.com/Faraid_AI"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="X (Twitter)"
+            className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:text-brand-700 hover:border-brand-300 transition"
+          >
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+          </a>
+          <a
+            href="https://www.facebook.com/profile.php?id=61594245950066"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Facebook"
+            className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:text-brand-700 hover:border-brand-300 transition"
+          >
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+              <path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.9h2.54V9.85c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.87h2.78l-.44 2.9h-2.34V22c4.78-.76 8.44-4.92 8.44-9.94z" />
+            </svg>
+          </a>
+        </div>
+      </main>
+
+      {user && <ChatWidget />}
+
+      {showLogin && (
+        <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
+          <button
+            onClick={() => {
+              setShowLogin(false);
+              setPendingAction(null);
+            }}
+            aria-label="Close"
+            className="absolute top-4 right-4 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200"
+          >
+            ✕
+          </button>
+          <Login />
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <LanguageProvider>
+      <AppInner />
+    </LanguageProvider>
+  );
+}
+FARAID_EOF
+echo "  updated: frontend/src/App.jsx"
+
+mkdir -p "$(dirname "frontend/src/i18n/translations.js")"
+cat > "frontend/src/i18n/translations.js" << 'FARAID_EOF'
 export const LANGUAGES = [
   { code: "ha", label: "Hausa", dir: "ltr" },
   { code: "en", label: "English", dir: "ltr" },
@@ -2833,3 +4539,8 @@ const bn = {
 };
 
 export const TRANSLATIONS = { en, ha, fr, ar, yo, sw, ur, id, es, pt, de, ru, zh, hi, tr, fa, ja, ko, ms, bn };
+FARAID_EOF
+echo "  updated: frontend/src/i18n/translations.js"
+
+echo "Done. Now run:"
+echo "  git add -A && git commit -m 'Rebuild forgot-password as OTP flow' && git push"

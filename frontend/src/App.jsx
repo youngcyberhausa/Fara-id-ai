@@ -7,7 +7,6 @@ import ThemeToggle from "./components/ThemeToggle";
 import { initAds, maybeShowInterstitial } from "./ads.js";
 import IslamicWatermark from "./components/IslamicWatermark";
 import Login from "./components/Login";
-import ResetPassword from "./components/ResetPassword";
 import AboutUs from "./components/AboutUs";
 import Terms from "./components/Terms";
 import PrivacyPolicy from "./components/PrivacyPolicy";
@@ -57,9 +56,6 @@ function AppInner() {
     document.head.appendChild(script);
   }, []);
 
-  const [resetToken, setResetToken] = useState(
-    () => new URLSearchParams(window.location.search).get("reset_token")
-  );
   const [page, setPage] = useState(() => {
     const p = window.location.pathname;
     if (p === "/about") return "about";
@@ -146,18 +142,6 @@ function AppInner() {
   if (page === "terms") return <Terms onBack={goHome} />;
   if (page === "privacy") return <PrivacyPolicy onBack={goHome} />;
   if (page === "disclaimer") return <Disclaimer onBack={goHome} />;
-
-  if (resetToken) {
-    return (
-      <ResetPassword
-        token={resetToken}
-        onDone={() => {
-          window.history.replaceState({}, "", window.location.pathname);
-          setResetToken(null);
-        }}
-      />
-    );
-  }
 
   if (authLoading) {
     return (

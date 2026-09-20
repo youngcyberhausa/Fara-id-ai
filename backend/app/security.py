@@ -57,3 +57,8 @@ def decode_access_token(token: str) -> Optional[str]:
 
 def generate_reset_token() -> str:
     return secrets.token_urlsafe(32)
+
+
+def generate_otp_code() -> str:
+    """6-digit numeric OTP for password reset, e.g. '048213'."""
+    return f"{secrets.randbelow(1_000_000):06d}"

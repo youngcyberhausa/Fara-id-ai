@@ -80,8 +80,14 @@ class ForgotPasswordRequest(BaseModel):
     email: str
 
 
+class VerifyOtpRequest(BaseModel):
+    email: str
+    otp: str
+
+
 class ResetPasswordRequest(BaseModel):
-    token: str
+    email: str
+    otp: str
     new_password: str = Field(min_length=6)
 
 

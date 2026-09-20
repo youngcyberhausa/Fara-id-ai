@@ -5,13 +5,16 @@ import { authApi } from "../api";
 import LanguageSwitcher from "./LanguageSwitcher";
 import ThemeToggle from "./ThemeToggle";
 import Logo from "./Logo";
+import OtpVerify from "./OtpVerify";
+import ResetPassword from "./ResetPassword";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
 export default function Login() {
   const { t } = useLang();
   const { login, register, loginWithGoogle } = useAuth();
-  const [mode, setMode] = useState("login"); // "login" | "register" | "forgot"
+  const [mode, setMode] = useState("login"); // "login" | "register" | "forgot" | "otp" | "reset-new"
+  const [resetOtp, setResetOtp] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -57,7 +60,7 @@ export default function Login() {
     try {
       if (mode === "forgot") {
         await authApi.forgotPassword(email.trim());
-        setInfo(t.resetLinkSent);
+        setMode("otp");
       } else if (mode === "register") {
         await register(email.trim(), password, name.trim() || undefined);
       } else {
@@ -68,6 +71,38 @@ export default function Login() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (mode === "otp") {
+    return (
+      <OtpVerify
+        email={email.trim()}
+        onVerified={(otp) => {
+          setResetOtp(otp);
+          setMode("reset-new");
+        }}
+        onBack={() => {
+          setMode("forgot");
+          setError(null);
+          setInfo(null);
+        }}
+      />
+    );
+  }
+
+  if (mode === "reset-new") {
+    return (
+      <ResetPassword
+        email={email.trim()}
+        otp={resetOtp}
+        onDone={() => {
+          setMode("login");
+          setPassword("");
+          setResetOtp("");
+          setInfo(t.resetSuccess);
+        }}
+      />
+    );
   }
 
   return (

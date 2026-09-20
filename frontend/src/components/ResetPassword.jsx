@@ -4,7 +4,7 @@ import { authApi } from "../api";
 import LanguageSwitcher from "./LanguageSwitcher";
 import Logo from "./Logo";
 
-export default function ResetPassword({ token, onDone }) {
+export default function ResetPassword({ email, otp, onDone }) {
   const { t } = useLang();
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -17,7 +17,7 @@ export default function ResetPassword({ token, onDone }) {
     setError(null);
     setBusy(true);
     try {
-      await authApi.resetPassword(token, password);
+      await authApi.resetPassword(email, otp, password);
       setDone(true);
     } catch (e) {
       setError(e.message);
@@ -83,7 +83,9 @@ export default function ResetPassword({ token, onDone }) {
 
                 {error && (
                   <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-                    {error === "This reset link is invalid or has expired." ? t.invalidResetLink : error}
+                    {error === "This code is invalid or has expired."
+                      ? t.invalidResetLink || "This code is invalid or has expired."
+                      : error}
                   </div>
                 )}
 
