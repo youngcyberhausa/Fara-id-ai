@@ -45,6 +45,14 @@ export const api = {
 
   deleteCase: (id) =>
     fetch(`${BASE_URL}/cases/${id}`, { method: "DELETE", headers: authHeaders() }).then(handle),
+
+  shareCase: (id) =>
+    fetch(`${BASE_URL}/cases/${id}/share`, { method: "POST", headers: authHeaders() }).then(handle),
+
+  unshareCase: (id) =>
+    fetch(`${BASE_URL}/cases/${id}/share`, { method: "DELETE", headers: authHeaders() }).then(handle),
+
+  getSharedCase: (token) => fetch(`${BASE_URL}/cases/shared/${token}`).then(handle),
 };
 
 export const authApi = {
@@ -78,11 +86,41 @@ export const authApi = {
       body: JSON.stringify({ email }),
     }).then(handle),
 
-  resetPassword: (token, newPassword) =>
+  verifyOtp: (email, otp) =>
+    fetch(`${BASE_URL}/auth/verify-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, otp }),
+    }).then(handle),
+
+  resetPassword: (email, otp, newPassword) =>
     fetch(`${BASE_URL}/auth/reset-password`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, new_password: newPassword }),
+      body: JSON.stringify({ email, otp, new_password: newPassword }),
+    }).then(handle),
+
+  // Signed-in deletion (used by the in-app "Delete account" button).
+  deleteAccount: () =>
+    fetch(`${BASE_URL}/auth/account`, {
+      method: "DELETE",
+      headers: authHeaders(),
+    }).then(handle),
+
+  // Public deletion flow (used by the standalone /delete-account page,
+  // reachable without signing into the app — required by Google Play).
+  requestAccountDeletion: (email) =>
+    fetch(`${BASE_URL}/auth/request-account-deletion`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    }).then(handle),
+
+  confirmAccountDeletion: (email, otp) =>
+    fetch(`${BASE_URL}/auth/confirm-account-deletion`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, otp }),
     }).then(handle),
 };
 
@@ -106,4 +144,34 @@ export const paymentsApi = {
     fetch(`${BASE_URL}/payments/verify/${reference}`, {
       headers: authHeaders(),
     }).then(handle),
+};
+
+export const adminApi = {
+  getStats: () => fetch(`${BASE_URL}/admin/stats`, { headers: authHeaders() }).then(handle),
+
+  listUsers: () => fetch(`${BASE_URL}/admin/users`, { headers: authHeaders() }).then(handle),
+
+  listAnnouncements: () =>
+    fetch(`${BASE_URL}/admin/announcements`, { headers: authHeaders() }).then(handle),
+
+  createAnnouncement: (payload) =>
+    fetch(`${BASE_URL}/admin/announcements`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(payload),
+    }).then(handle),
+
+  deactivateAnnouncement: (id) =>
+    fetch(`${BASE_URL}/admin/announcements/${id}`, {
+      method: "DELETE",
+      headers: authHeaders(),
+    }).then(handle),
+};
+
+export const announcementsApi = {
+  getActive: () => fetch(`${BASE_URL}/announcements/active`).then(handle),
+};
+
+export const zakatApi = {
+  getPrices: (currency) => fetch(`${BASE_URL}/zakat/prices?currency=${currency}`).then(handle),
 };

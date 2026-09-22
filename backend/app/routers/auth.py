@@ -6,15 +6,14 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..security import hash_password, verify_password, create_access_token, generate_reset_token
+from ..security import hash_password, verify_password, create_access_token, generate_otp_code
 from ..deps import get_current_user
-from ..email_utils import send_password_reset_email
+from ..email_utils import send_password_reset_otp, send_account_deletion_otp
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
-FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
-RESET_TOKEN_TTL_MINUTES = 60
+RESET_TOKEN_TTL_MINUTES = 10
 
 
 @router.post("/register", response_model=schemas.TokenResponse)
@@ -102,20 +101,19 @@ def forgot_password(req: schemas.ForgotPasswordRequest, db: Session = Depends(ge
     # Always return the same generic message, whether or not the account
     # exists — this avoids leaking which emails are registered.
     generic_response = {
-        "message": "If an account exists for that email, a reset link has been sent."
+        "message": "If an account exists for that email, a verification code has been sent."
     }
 
     if not user:
         return generic_response
 
-    token = generate_reset_token()
-    user.reset_token = token
+    otp = generate_otp_code()
+    user.reset_token = otp
     user.reset_token_expires = datetime.utcnow() + timedelta(minutes=RESET_TOKEN_TTL_MINUTES)
     db.commit()
 
-    reset_link = f"{FRONTEND_URL}?reset_token={token}"
     try:
-        send_password_reset_email(user.email, reset_link)
+        send_password_reset_otp(user.email, otp)
     except Exception:
         # Don't leak SMTP failures to the client; the generic message still
         # applies. The server logs will show the failure for debugging.
@@ -124,15 +122,27 @@ def forgot_password(req: schemas.ForgotPasswordRequest, db: Session = Depends(ge
     return generic_response
 
 
-@router.post("/reset-password")
-def reset_password(req: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
+def _get_valid_otp_user(db: Session, email: str, otp: str) -> models.User:
+    email = email.strip().lower()
     user = (
         db.query(models.User)
-        .filter(models.User.reset_token == req.token)
+        .filter(models.User.email == email, models.User.reset_token == otp)
         .first()
     )
     if not user or not user.reset_token_expires or user.reset_token_expires < datetime.utcnow():
-        raise HTTPException(status_code=400, detail="This reset link is invalid or has expired.")
+        raise HTTPException(status_code=400, detail="This code is invalid or has expired.")
+    return user
+
+
+@router.post("/verify-otp")
+def verify_otp(req: schemas.VerifyOtpRequest, db: Session = Depends(get_db)):
+    _get_valid_otp_user(db, req.email, req.otp)
+    return {"valid": True}
+
+
+@router.post("/reset-password")
+def reset_password(req: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
+    user = _get_valid_otp_user(db, req.email, req.otp)
 
     user.password_hash = hash_password(req.new_password)
     user.reset_token = None
@@ -140,3 +150,59 @@ def reset_password(req: schemas.ResetPasswordRequest, db: Session = Depends(get_
     db.commit()
 
     return {"message": "Your password has been reset."}
+
+
+def _erase_user_and_data(db: Session, user: models.User) -> None:
+    """Permanently deletes a user and everything tied to their account
+    (saved cases, payment records). No FK cascade is configured at the DB
+    level, so children are removed explicitly first."""
+    db.query(models.Case).filter(models.Case.user_id == user.id).delete()
+    db.query(models.Payment).filter(models.Payment.user_id == user.id).delete()
+    db.delete(user)
+    db.commit()
+
+
+@router.delete("/account")
+def delete_my_account(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """Signed-in account deletion — used by the in-app 'Delete account'
+    button. Permanently removes the account and all saved cases."""
+    _erase_user_and_data(db, user)
+    return {"message": "Your account and all saved cases have been permanently deleted."}
+
+
+@router.post("/request-account-deletion")
+def request_account_deletion(req: schemas.RequestAccountDeletionRequest, db: Session = Depends(get_db)):
+    """Public, no-login-required entry point (used by the /delete-account
+    web page) so a user can request deletion even without the app
+    installed, per Google Play's Account Deletion policy."""
+    email = req.email.strip().lower()
+    user = db.query(models.User).filter(models.User.email == email).first()
+
+    generic_response = {
+        "message": "If an account exists for that email, a confirmation code has been sent."
+    }
+
+    if not user:
+        return generic_response
+
+    otp = generate_otp_code()
+    user.reset_token = otp
+    user.reset_token_expires = datetime.utcnow() + timedelta(minutes=RESET_TOKEN_TTL_MINUTES)
+    db.commit()
+
+    try:
+        send_account_deletion_otp(user.email, otp)
+    except Exception:
+        pass
+
+    return generic_response
+
+
+@router.post("/confirm-account-deletion")
+def confirm_account_deletion(req: schemas.ConfirmAccountDeletionRequest, db: Session = Depends(get_db)):
+    user = _get_valid_otp_user(db, req.email, req.otp)
+    _erase_user_and_data(db, user)
+    return {"message": "Your account and all saved cases have been permanently deleted."}

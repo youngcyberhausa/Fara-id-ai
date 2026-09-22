@@ -15,20 +15,48 @@ SMTP_PASS = os.environ.get("SMTP_PASS")
 SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USER or "no-reply@faraid.ai")
 
 
-def send_password_reset_email(to_email: str, reset_link: str) -> None:
-    subject = "Reset your Fara'id AI password"
+def send_password_reset_otp(to_email: str, otp: str) -> None:
+    subject = "Your Fara'id AI verification code"
     body = (
         f"Assalamu alaikum,\n\n"
         f"Someone requested a password reset for this email on Fara'id AI.\n"
-        f"If this was you, click the link below to choose a new password "
-        f"(valid for 1 hour):\n\n{reset_link}\n\n"
-        f"If you didn't request this, you can safely ignore this email.\n"
+        f"Your verification code is:\n\n{otp}\n\n"
+        f"This code expires in 10 minutes. If you didn't request this, "
+        f"you can safely ignore this email.\n"
     )
 
     if not SMTP_HOST or not SMTP_USER or not SMTP_PASS:
-        # Not configured yet — log so it's visible in Railway deploy logs
+        # Not configured yet — log so it's visible in the deploy logs
         # during setup/testing, instead of silently failing.
-        print(f"[email:not-configured] Password reset link for {to_email}: {reset_link}")
+        print(f"[email:not-configured] Password reset OTP for {to_email}: {otp}")
+        return
+
+    msg = MIMEText(body)
+    msg["Subject"] = subject
+    msg["From"] = SMTP_FROM
+    msg["To"] = to_email
+
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASS)
+        server.sendmail(SMTP_FROM, [to_email], msg.as_string())
+
+
+def send_account_deletion_otp(to_email: str, otp: str) -> None:
+    subject = "Confirm deletion of your Fara'id AI account"
+    body = (
+        f"Assalamu alaikum,\n\n"
+        f"Someone requested permanent deletion of this Fara'id AI account "
+        f"and all its saved cases.\n\n"
+        f"Your confirmation code is:\n\n{otp}\n\n"
+        f"This code expires in 10 minutes. If you didn't request this, "
+        f"you can safely ignore this email — your account will not be "
+        f"touched.\n\n"
+        f"This action cannot be undone once confirmed.\n"
+    )
+
+    if not SMTP_HOST or not SMTP_USER or not SMTP_PASS:
+        print(f"[email:not-configured] Account deletion OTP for {to_email}: {otp}")
         return
 
     msg = MIMEText(body)

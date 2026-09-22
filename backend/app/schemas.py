@@ -4,11 +4,9 @@ from pydantic import BaseModel, Field
 
 
 class HeirInput(BaseModel):
-    type: str  # e.g. "husband", "wife", "son", "daughter", "father", "mother",
-    #            "full_brother", "full_sister", "consanguine_brother",
-    #            "consanguine_sister", "uterine_brother", "uterine_sister",
-    #            "paternal_grandfather", "paternal_grandmother", "maternal_grandmother"
+    type: str
     count: int = 1
+    names: Optional[List[str]] = None  # optional individual names
 
 
 class CaseCreate(BaseModel):
@@ -35,6 +33,7 @@ class CaseOut(BaseModel):
     wasiyyah_amount: float
     heirs: List[Dict[str, Any]]
     result: Optional[Dict[str, Any]] = None
+    share_token: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -55,6 +54,8 @@ class UserOut(BaseModel):
     name: Optional[str] = None
     is_premium: bool = False
     premium_expires_at: Optional[datetime] = None
+    is_admin: bool = False
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -79,12 +80,52 @@ class ForgotPasswordRequest(BaseModel):
     email: str
 
 
+class VerifyOtpRequest(BaseModel):
+    email: str
+    otp: str
+
+
 class ResetPasswordRequest(BaseModel):
-    token: str
+    email: str
+    otp: str
     new_password: str = Field(min_length=6)
+
+
+class RequestAccountDeletionRequest(BaseModel):
+    email: str
+
+
+class ConfirmAccountDeletionRequest(BaseModel):
+    email: str
+    otp: str
 
 
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserOut
+
+
+class AnnouncementCreate(BaseModel):
+    title: str
+    message: Optional[str] = None
+    video_url: Optional[str] = None
+
+
+class AnnouncementOut(BaseModel):
+    id: str
+    title: str
+    message: Optional[str] = None
+    video_url: Optional[str] = None
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AdminStats(BaseModel):
+    total_users: int
+    total_cases: int
+    premium_users: int
+    new_users_7d: int
