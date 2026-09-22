@@ -7,20 +7,17 @@ import ThemeToggle from "./components/ThemeToggle";
 import { initAds, maybeShowInterstitial } from "./ads.js";
 import IslamicWatermark from "./components/IslamicWatermark";
 import Login from "./components/Login";
+import ResetPassword from "./components/ResetPassword";
 import AboutUs from "./components/AboutUs";
 import Terms from "./components/Terms";
 import PrivacyPolicy from "./components/PrivacyPolicy";
 import Disclaimer from "./components/Disclaimer";
 import Home from "./components/Home";
+import Premium from "./components/Premium";
 import History from "./components/History";
 import Learn from "./components/Learn";
 import ChatWidget from "./components/ChatWidget";
-import SharedCase from "./components/SharedCase";
-import NotificationBanner from "./components/NotificationBanner";
-const AdminDashboard = lazy(() => import("./components/AdminDashboard"));
-const Dashboard = lazy(() => import("./components/Dashboard"));
 const FamilyRelations = lazy(() => import("./components/FamilyRelations"));
-const ZakatCalculator = lazy(() => import("./components/ZakatCalculator"));
 const IntroSplash = lazy(() => import("./components/IntroSplash"));
 import StepTabs, { STEPS } from "./components/StepTabs";
 import StepEstate from "./components/StepEstate";
@@ -34,16 +31,18 @@ function AppInner() {
   const { t } = useLang();
   const { user, loading: authLoading, logout } = useAuth();
 
-  const [sharedToken, setSharedToken] = useState(
-    () => new URLSearchParams(window.location.search).get("shared")
-  );
-
+  // Initialize native ads (AdMob) once auth has resolved, skipping entirely
+  // for premium subscribers. No-ops on web automatically (see ads.js).
   useEffect(() => {
     if (authLoading) return;
-    initAds();
-  }, [authLoading]);
+    const isPremium =
+      user?.is_premium && (!user.premium_expires_at || new Date(user.premium_expires_at) > new Date());
+    initAds(isPremium);
+  }, [authLoading, user]);
   const [showSplash, setShowSplash] = useState(true);
 
+  // Load the AdSense script once, only when a publisher client ID is
+  // configured (VITE_ADSENSE_CLIENT). No-ops silently otherwise.
   useEffect(() => {
     const client = import.meta.env.VITE_ADSENSE_CLIENT;
     if (!client) return;
@@ -56,6 +55,9 @@ function AppInner() {
     document.head.appendChild(script);
   }, []);
 
+  const [resetToken, setResetToken] = useState(
+    () => new URLSearchParams(window.location.search).get("reset_token")
+  );
   const [page, setPage] = useState(() => {
     const p = window.location.pathname;
     if (p === "/about") return "about";
@@ -73,7 +75,7 @@ function AppInner() {
     window.history.pushState({}, "", "/");
     setPage("app");
   }
-  const [view, setView] = useState("home");
+  const [view, setView] = useState("home"); // "home" | "wizard" | "history" | "learn" | "relations"
   const [menuOpen, setMenuOpen] = useState(false);
   const [historyQuery, setHistoryQuery] = useState("");
   const [stepIndex, setStepIndex] = useState(0);
@@ -91,33 +93,8 @@ function AppInner() {
   const [error, setError] = useState(null);
   const [savedId, setSavedId] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
-  const [pendingAction, setPendingAction] = useState(null);
-
-  useEffect(() => {
-    if (!user || !showLogin) return;
-    setShowLogin(false);
-    const action = pendingAction;
-    setPendingAction(null);
-    if (action === "save") handleSave();
-    else if (action === "history") setView("history");
-    else if (action === "dashboard") setView("dashboard");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, showLogin]);
 
   const step = STEPS[stepIndex];
-
-  if (sharedToken) {
-    return (
-      <SharedCase
-        token={sharedToken}
-        onClose={() => {
-          window.history.replaceState({}, "", "/");
-          setSharedToken(null);
-        }}
-      />
-    );
-  }
 
   if (showSplash) {
     return (
@@ -143,12 +120,28 @@ function AppInner() {
   if (page === "privacy") return <PrivacyPolicy onBack={goHome} />;
   if (page === "disclaimer") return <Disclaimer onBack={goHome} />;
 
+  if (resetToken) {
+    return (
+      <ResetPassword
+        token={resetToken}
+        onDone={() => {
+          window.history.replaceState({}, "", window.location.pathname);
+          setResetToken(null);
+        }}
+      />
+    );
+  }
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-sm text-gray-400">
         {t.loadingAuth}
       </div>
     );
+  }
+
+  if (!user) {
+    return <Login />;
   }
 
   async function goNext() {
@@ -176,11 +169,6 @@ function AppInner() {
   }
 
   async function handleSave() {
-    if (!user) {
-      setPendingAction("save");
-      setShowLogin(true);
-      return;
-    }
     setSaving(true);
     try {
       const payload = { ...data, heirs };
@@ -214,11 +202,6 @@ function AppInner() {
     setView("home");
   }
   function goToHistory(query = "") {
-    if (!user) {
-      setPendingAction("history");
-      setShowLogin(true);
-      return;
-    }
     setHistoryQuery(query);
     setView("history");
   }
@@ -228,59 +211,34 @@ function AppInner() {
   function goToRelations() {
     setView("relations");
   }
-  function goToZakat() {
-    setView("zakat");
-  }
-  function goToAdmin() {
-    setView("admin");
-  }
-  function goToDashboard() {
-    if (!user) {
-      setPendingAction("dashboard");
-      setShowLogin(true);
-      return;
-    }
-    setView("dashboard");
+  function goToPremium() {
+    setView("premium");
   }
 
   return (
     <div className="min-h-screen relative">
       <IslamicWatermark />
-      <NotificationBanner />
 
-      <header className="border-b border-gray-100 bg-white/90 backdrop-blur-sm sticky top-0 z-10 shadow-sm">
+      {/* Header */}
+      <header className="border-b border-gray-100 bg-white/90 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button
-              onClick={goToHome}
-              className="flex items-center gap-3 rounded-lg -mx-1 px-1 py-0.5 hover:opacity-80"
-            >
+            <button onClick={goToHome} className="flex items-center gap-3">
               <Logo size={34} />
               <div className="text-left">
                 <div className="text-sm font-semibold text-gray-900 leading-tight">{t.appName}</div>
-                <div className="text-[11px] text-gray-400 leading-tight tracking-wide">{t.tagline}</div>
+                <div className="text-[11px] text-gray-400 leading-tight">{t.tagline}</div>
               </div>
             </button>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-3">
             <ThemeToggle />
             <LanguageSwitcher />
-            {!user && (
-              <button
-                onClick={() => {
-                  setPendingAction(null);
-                  setShowLogin(true);
-                }}
-                className="px-3.5 py-1.5 text-sm rounded-lg bg-brand-600 text-white font-medium hover:bg-brand-700"
-              >
-                {t.loginBtn}
-              </button>
-            )}
             {user && (
               <div className="relative">
                 <button
                   onClick={() => setMenuOpen((v) => !v)}
-                  className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300"
+                  className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
                   aria-label="Menu"
                 >
                   ☰
@@ -288,49 +246,34 @@ function AppInner() {
                 {menuOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                    <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl border border-gray-100 shadow-lg z-20 overflow-hidden py-1">
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl border border-gray-100 shadow-lg z-20 overflow-hidden">
                       <button
                         onClick={() => {
                           setMenuOpen(false);
-                          goToDashboard();
+                          goToPremium();
                         }}
                         className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                       >
-                        📊 Dashboard
+                        👑 {t.tilePremium}
                       </button>
-                      <div className="border-t border-gray-100" />
-                      {user.is_admin && (
-                        <>
-                          <button
-                            onClick={() => {
-                              setMenuOpen(false);
-                              goToAdmin();
-                            }}
-                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 flex items-center gap-2.5"
-                          >
-                            <span className="w-6 text-center">🛠</span> Admin Dashboard
-                          </button>
-                          <div className="border-t border-gray-100 mx-2" />
-                        </>
-                      )}
                       <button
                         onClick={() => {
                           setMenuOpen(false);
                           goToHistory();
                         }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 flex items-center gap-2.5"
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                       >
-                        <span className="w-6 text-center">⏱</span> {t.tileHistory}
+                        ⏱ {t.tileHistory}
                       </button>
-                      <div className="border-t border-gray-100 mx-2" />
+                      <div className="border-t border-gray-100" />
                       <button
                         onClick={() => {
                           setMenuOpen(false);
                           logout();
                         }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2.5"
+                        className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                       >
-                        <span className="w-6 text-center">↪</span> {t.logout}
+                        ↪ {t.logout}
                       </button>
                     </div>
                   </>
@@ -342,43 +285,18 @@ function AppInner() {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 py-6">
-        {view === "dashboard" && (
-          <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
-            <Dashboard
-              onHome={goToHome}
-              onHistory={goToHistory}
-              onNewCase={handleNewCase}
-              onZakat={goToZakat}
-              onMenu={() => {
-                setView("home");
-                setMenuOpen(true);
-              }}
-            />
-          </Suspense>
-        )}
-
         {view === "home" && (
           <Home
             onNewCase={handleNewCase}
             onHistory={() => goToHistory()}
             onLearn={goToLearn}
             onRelations={goToRelations}
-            onZakat={goToZakat}
+            onPremium={goToPremium}
             onSearch={(q) => goToHistory(q)}
           />
         )}
 
-        {view === "zakat" && (
-          <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
-            <ZakatCalculator onBack={goToHome} />
-          </Suspense>
-        )}
-
-        {view === "admin" && user?.is_admin && (
-          <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
-            <AdminDashboard onBack={goToHome} />
-          </Suspense>
-        )}
+        {view === "premium" && <Premium onBack={goToHome} />}
 
         {view === "relations" && (
           <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
@@ -398,16 +316,14 @@ function AppInner() {
 
         {view === "wizard" && (
           <>
-        <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-gray-100 p-5 sm:p-7 shadow-md">
+        {/* Wizard card */}
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base sm:text-lg font-semibold text-gray-900">{t.newCase}</h2>
+              <h2 className="text-base font-semibold text-gray-900">{t.newCase}</h2>
               <p className="text-sm text-gray-500 mt-0.5">{t.newCaseDesc}</p>
             </div>
-            <button
-              onClick={goToHome}
-              className="text-sm text-gray-500 hover:text-gray-700 shrink-0 rounded-lg px-2 py-1 hover:bg-gray-50"
-            >
+            <button onClick={goToHome} className="text-sm text-gray-500 hover:text-gray-700 shrink-0">
               ← {t.back}
             </button>
           </div>
@@ -424,11 +340,11 @@ function AppInner() {
             {step === "result" && <StepResult result={result} loading={loading} error={error} />}
           </div>
 
-          <div className="mt-6 flex items-center justify-between border-t border-gray-100 pt-5">
+          <div className="mt-6 flex items-center justify-between border-t border-gray-100 pt-4">
             <button
               onClick={goBack}
               disabled={stepIndex === 0}
-              className="px-4 py-2.5 text-sm rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 hover:bg-gray-50 hover:border-gray-300 font-medium"
+              className="px-4 py-2 text-sm rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 hover:bg-gray-50"
             >
               ← {t.back}
             </button>
@@ -436,7 +352,7 @@ function AppInner() {
             {step !== "result" ? (
               <button
                 onClick={goNext}
-                className="px-6 py-2.5 text-sm rounded-lg bg-brand-600 text-white font-semibold hover:bg-brand-700"
+                className="px-5 py-2 text-sm rounded-lg bg-brand-600 text-white font-medium hover:bg-brand-700"
               >
                 {step === "heirs" ? t.calculate : t.next} →
               </button>
@@ -444,16 +360,16 @@ function AppInner() {
               <div className="flex gap-2">
                 <button
                   onClick={handleNewCase}
-                  className="px-4 py-2.5 text-sm rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 font-medium"
+                  className="px-4 py-2 text-sm rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
                 >
                   {t.newCaseBtn}
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={saving || !!savedId}
-                  className="px-6 py-2.5 text-sm rounded-lg bg-brand-600 text-white font-semibold hover:bg-brand-700 disabled:opacity-50"
+                  className="px-5 py-2 text-sm rounded-lg bg-brand-600 text-white font-medium hover:bg-brand-700 disabled:opacity-50"
                 >
-                  {savedId ? "✓ " + t.saveCase : saving ? "…" : t.saveCase}
+                  {savedId ? "✓" : saving ? "…" : t.saveCase}
                 </button>
               </div>
             )}
@@ -465,7 +381,7 @@ function AppInner() {
         <div className="text-center text-[11px] text-gray-400 mt-8 pb-2">
           {t.appName} · {t.scholarBadge}
         </div>
-        <div className="flex items-center justify-center gap-4 text-[11px] text-gray-400 pb-3">
+        <div className="flex items-center justify-center gap-4 text-[11px] text-gray-400 pb-6">
           <button onClick={() => navigate("/about", "about")} className="hover:text-gray-600">
             {t.footerAbout}
           </button>
@@ -482,49 +398,9 @@ function AppInner() {
             {t.footerDisclaimer}
           </button>
         </div>
-        <div className="flex items-center justify-center gap-4 pb-6">
-          <a
-            href="https://x.com/Faraid_AI"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="X (Twitter)"
-            className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:text-brand-700 hover:border-brand-300 transition"
-          >
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-            </svg>
-          </a>
-          <a
-            href="https://www.facebook.com/profile.php?id=61594245950066"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Facebook"
-            className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:text-brand-700 hover:border-brand-300 transition"
-          >
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-              <path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.9h2.54V9.85c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.87h2.78l-.44 2.9h-2.34V22c4.78-.76 8.44-4.92 8.44-9.94z" />
-            </svg>
-          </a>
-        </div>
       </main>
 
       {user && <ChatWidget />}
-
-      {showLogin && (
-        <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
-          <button
-            onClick={() => {
-              setShowLogin(false);
-              setPendingAction(null);
-            }}
-            aria-label="Close"
-            className="absolute top-4 right-4 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200"
-          >
-            ✕
-          </button>
-          <Login />
-        </div>
-      )}
     </div>
   );
 }

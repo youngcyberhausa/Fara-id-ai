@@ -6,14 +6,15 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..security import hash_password, verify_password, create_access_token, generate_otp_code
+from ..security import hash_password, verify_password, create_access_token, generate_reset_token
 from ..deps import get_current_user
-from ..email_utils import send_password_reset_otp
+from ..email_utils import send_password_reset_email
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
-RESET_TOKEN_TTL_MINUTES = 10
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+RESET_TOKEN_TTL_MINUTES = 60
 
 
 @router.post("/register", response_model=schemas.TokenResponse)
@@ -101,19 +102,20 @@ def forgot_password(req: schemas.ForgotPasswordRequest, db: Session = Depends(ge
     # Always return the same generic message, whether or not the account
     # exists — this avoids leaking which emails are registered.
     generic_response = {
-        "message": "If an account exists for that email, a verification code has been sent."
+        "message": "If an account exists for that email, a reset link has been sent."
     }
 
     if not user:
         return generic_response
 
-    otp = generate_otp_code()
-    user.reset_token = otp
+    token = generate_reset_token()
+    user.reset_token = token
     user.reset_token_expires = datetime.utcnow() + timedelta(minutes=RESET_TOKEN_TTL_MINUTES)
     db.commit()
 
+    reset_link = f"{FRONTEND_URL}?reset_token={token}"
     try:
-        send_password_reset_otp(user.email, otp)
+        send_password_reset_email(user.email, reset_link)
     except Exception:
         # Don't leak SMTP failures to the client; the generic message still
         # applies. The server logs will show the failure for debugging.
@@ -122,27 +124,15 @@ def forgot_password(req: schemas.ForgotPasswordRequest, db: Session = Depends(ge
     return generic_response
 
 
-def _get_valid_otp_user(db: Session, email: str, otp: str) -> models.User:
-    email = email.strip().lower()
+@router.post("/reset-password")
+def reset_password(req: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
     user = (
         db.query(models.User)
-        .filter(models.User.email == email, models.User.reset_token == otp)
+        .filter(models.User.reset_token == req.token)
         .first()
     )
     if not user or not user.reset_token_expires or user.reset_token_expires < datetime.utcnow():
-        raise HTTPException(status_code=400, detail="This code is invalid or has expired.")
-    return user
-
-
-@router.post("/verify-otp")
-def verify_otp(req: schemas.VerifyOtpRequest, db: Session = Depends(get_db)):
-    _get_valid_otp_user(db, req.email, req.otp)
-    return {"valid": True}
-
-
-@router.post("/reset-password")
-def reset_password(req: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
-    user = _get_valid_otp_user(db, req.email, req.otp)
+        raise HTTPException(status_code=400, detail="This reset link is invalid or has expired.")
 
     user.password_hash = hash_password(req.new_password)
     user.reset_token = None
