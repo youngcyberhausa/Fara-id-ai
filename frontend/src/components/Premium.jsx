@@ -46,7 +46,6 @@ export default function Premium({ onBack }) {
     user?.is_premium && (!user.premium_expires_at || new Date(user.premium_expires_at) > new Date());
 
   const features = [
-    { icon: "📄", title: t.premFeaturePdf, desc: t.premFeaturePdfDesc },
     { icon: "🤖", title: t.premFeatureAi, desc: t.premFeatureAiDesc },
     { icon: "🚫", title: t.premFeatureAds, desc: t.premFeatureAdsDesc },
     { icon: "🕌", title: t.premFeatureZakat, desc: t.premFeatureZakatDesc },
