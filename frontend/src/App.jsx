@@ -18,10 +18,15 @@ import Learn from "./components/Learn";
 import ChatWidget from "./components/ChatWidget";
 import SharedCase from "./components/SharedCase";
 import NotificationBanner from "./components/NotificationBanner";
+import PremiumGate from "./components/PremiumGate";
+import MyFamily from "./components/MyFamily";
+import WasiyyahPlanner from "./components/WasiyyahPlanner";
+import WealthTracker from "./components/WealthTracker";
 const AdminDashboard = lazy(() => import("./components/AdminDashboard"));
 const Dashboard = lazy(() => import("./components/Dashboard"));
 const FamilyRelations = lazy(() => import("./components/FamilyRelations"));
 const ZakatCalculator = lazy(() => import("./components/ZakatCalculator"));
+const Premium = lazy(() => import("./components/Premium"));
 const IntroSplash = lazy(() => import("./components/IntroSplash"));
 import StepTabs, { STEPS } from "./components/StepTabs";
 import StepEstate from "./components/StepEstate";
@@ -34,6 +39,8 @@ import { api, authApi } from "./api";
 function AppInner() {
   const { t } = useLang();
   const { user, loading: authLoading, logout } = useAuth();
+  const isPremium =
+    user?.is_premium && (!user.premium_expires_at || new Date(user.premium_expires_at) > new Date());
 
   const [sharedToken, setSharedToken] = useState(
     () => new URLSearchParams(window.location.search).get("shared")
@@ -104,6 +111,7 @@ function AppInner() {
     if (action === "save") handleSave();
     else if (action === "history") setView("history");
     else if (action === "dashboard") setView("dashboard");
+    else if (action === "premium") setView("premium");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, showLogin]);
 
@@ -238,6 +246,26 @@ function AppInner() {
   function goToAdmin() {
     setView("admin");
   }
+  function goToPremium() {
+    if (!user) {
+      setPendingAction("premium");
+      setShowLogin(true);
+      return;
+    }
+    setView("premium");
+  }
+  function goToWealth() {
+    setView("wealth");
+  }
+  function goToWasiyyah() {
+    setView("wasiyyah-planner");
+  }
+  function goToMyFamily() {
+    setView("my-family");
+  }
+  function goToCalculator() {
+    handleNewCase();
+  }
   function goToDashboard() {
     if (!user) {
       setPendingAction("dashboard");
@@ -302,7 +330,44 @@ function AppInner() {
                       >
                         📊 Dashboard
                       </button>
+                      <button
+                        onClick={() => {
+                          setMenuOpen(false);
+                          goToPremium();
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-amber-50 flex items-center gap-2"
+                      >
+                        {user.is_premium &&
+                        (!user.premium_expires_at || new Date(user.premium_expires_at) > new Date())
+                          ? "👑 Premium"
+                          : `⭐ ${t.tilePremium}`}
+                      </button>
                       <div className="border-t border-gray-100" />
+                      <button
+                        onClick={() => { setMenuOpen(false); goToCalculator(); }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 flex items-center gap-2.5"
+                      >
+                        <span className="w-6 text-center">⚖️</span> Inheritance Calculator
+                      </button>
+                      <button
+                        onClick={() => { setMenuOpen(false); goToWealth(); }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 flex items-center gap-2.5"
+                      >
+                        <span className="w-6 text-center">💰</span> Wealth & Zakat
+                      </button>
+                      <button
+                        onClick={() => { setMenuOpen(false); goToWasiyyah(); }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 flex items-center gap-2.5"
+                      >
+                        <span className="w-6 text-center">📜</span> My Wasiyyah
+                      </button>
+                      <button
+                        onClick={() => { setMenuOpen(false); goToMyFamily(); }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 flex items-center gap-2.5"
+                      >
+                        <span className="w-6 text-center">👨‍👩‍👧‍👦</span> My Family
+                      </button>
+                      <div className="border-t border-gray-100 mx-2" />
                       {user.is_admin && (
                         <>
                           <button
@@ -387,14 +452,30 @@ function AppInner() {
             onLearn={goToLearn}
             onRelations={goToRelations}
             onZakat={goToZakat}
+            onPremium={goToPremium}
             onSearch={(q) => goToHistory(q)}
           />
         )}
 
-        {view === "zakat" && (
+        {view === "premium" && (
           <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
-            <ZakatCalculator onBack={goToHome} />
+            <Premium onBack={goToHome} />
           </Suspense>
+        )}
+
+        {view === "zakat" && (
+          isPremium ? (
+            <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
+              <ZakatCalculator onBack={goToHome} />
+            </Suspense>
+          ) : (
+            <PremiumGate
+              title={t.tileZakat}
+              description={t.tileZakatDesc}
+              onBack={goToHome}
+              onUpgrade={goToPremium}
+            />
+          )
         )}
 
         {view === "admin" && user?.is_admin && (
@@ -404,10 +485,25 @@ function AppInner() {
         )}
 
         {view === "relations" && (
-          <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
-            <FamilyRelations onBack={goToHome} />
-          </Suspense>
+          isPremium ? (
+            <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
+              <FamilyRelations onBack={goToHome} />
+            </Suspense>
+          ) : (
+            <PremiumGate
+              title={t.tileRelations}
+              description={t.tileRelationsDesc}
+              onBack={goToHome}
+              onUpgrade={goToPremium}
+            />
+          )
         )}
+
+        {view === "wealth" && <WealthTracker onBack={goToHome} onZakat={goToZakat} />}
+
+        {view === "wasiyyah-planner" && <WasiyyahPlanner onBack={goToHome} />}
+
+        {view === "my-family" && <MyFamily onBack={goToHome} onRelations={goToRelations} />}
 
         {view === "history" && (
           <History
