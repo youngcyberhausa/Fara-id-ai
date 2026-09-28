@@ -1,301 +1,737 @@
-<header className="border-b border-gray-100 bg-white/90 backdrop-blur-sm sticky top-0 z-10 shadow-sm">
-  <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
+import { useState, useEffect, lazy, Suspense } from "react";
+import { LanguageProvider, useLang } from "./i18n/LanguageContext";
+import { useAuth } from "./AuthContext";
+import Logo from "./components/Logo";
+import LanguageSwitcher from "./components/LanguageSwitcher";
+import ThemeToggle from "./components/ThemeToggle";
+import { initAds, maybeShowInterstitial } from "./ads.js";
+import IslamicWatermark from "./components/IslamicWatermark";
+import Login from "./components/Login";
+import AboutUs from "./components/AboutUs";
+import Terms from "./components/Terms";
+import PrivacyPolicy from "./components/PrivacyPolicy";
+import Disclaimer from "./components/Disclaimer";
+import DeleteAccount from "./components/DeleteAccount";
+import Home from "./components/Home";
+import History from "./components/History";
+import Learn from "./components/Learn";
+import ChatWidget from "./components/ChatWidget";
+import SharedCase from "./components/SharedCase";
+import NotificationBanner from "./components/NotificationBanner";
+import PremiumGate from "./components/PremiumGate";
+import MyFamily from "./components/MyFamily";
+import WasiyyahPlanner from "./components/WasiyyahPlanner";
+import WealthTracker from "./components/WealthTracker";
+import RubuuDinarAlert from "./components/RubuuDinarAlert";
+const AdminDashboard = lazy(() => import("./components/AdminDashboard"));
+const Dashboard = lazy(() => import("./components/Dashboard"));
+const FamilyRelations = lazy(() => import("./components/FamilyRelations"));
+const ZakatCalculator = lazy(() => import("./components/ZakatCalculator"));
+const Premium = lazy(() => import("./components/Premium"));
+const IntroSplash = lazy(() => import("./components/IntroSplash"));
+import StepTabs, { STEPS } from "./components/StepTabs";
+import StepEstate from "./components/StepEstate";
+import StepDeductions from "./components/StepDeductions";
+import StepWasiyyah from "./components/StepWasiyyah";
+import StepHeirs from "./components/StepHeirs";
+import StepResult from "./components/StepResult";
+import { api, authApi } from "./api";
+import { setupPushNotifications, unregisterCurrentDevice, cleanupPushListeners } from "./pushNotifications";
+import { createPortal } from "react-dom";
 
-    <div className="flex items-center gap-3 min-w-0">
-      <button
-        onClick={goToHome}
-        className="flex items-center gap-3 rounded-lg -mx-1 px-1 py-0.5 hover:opacity-80 min-w-0"
+function AppInner() {
+  const { t } = useLang();
+  const { user, token, loading: authLoading, logout } = useAuth();
+  const isPremium =
+    user?.is_premium && (!user.premium_expires_at || new Date(user.premium_expires_at) > new Date());
+
+  const [sharedToken, setSharedToken] = useState(
+    () => new URLSearchParams(window.location.search).get("shared")
+  );
+
+  useEffect(() => {
+    if (authLoading) return;
+    initAds();
+  }, [authLoading]);
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    const client = import.meta.env.VITE_ADSENSE_CLIENT;
+    if (!client) return;
+    if (document.querySelector("script[data-adsbygoogle]")) return;
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${client}`;
+    script.crossOrigin = "anonymous";
+    script.dataset.adsbygoogle = "true";
+    document.head.appendChild(script);
+  }, []);
+
+  useEffect(() => {
+    if (!user || !token || !user.push_notifications_enabled) {
+      cleanupPushListeners();
+      return undefined;
+    }
+
+    setupPushNotifications().catch(() => {});
+
+    return () => {
+      cleanupPushListeners();
+    };
+  }, [user?.id, user?.push_notifications_enabled, token]);
+
+  const [page, setPage] = useState(() => {
+    const p = window.location.pathname;
+    if (p === "/about") return "about";
+    if (p === "/terms") return "terms";
+    if (p === "/privacy") return "privacy";
+    if (p === "/disclaimer") return "disclaimer";
+    if (p === "/delete-account") return "delete-account";
+    return "app";
+  });
+
+  function navigate(path, name) {
+    window.history.pushState({}, "", path);
+    setPage(name);
+  }
+  function goHome() {
+    window.history.pushState({}, "", "/");
+    setPage("app");
+  }
+  const [view, setView] = useState("home");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [historyQuery, setHistoryQuery] = useState("");
+  const [stepIndex, setStepIndex] = useState(0);
+  const [data, setData] = useState({
+    title: "",
+    estate_amount: 0,
+    currency: "NGN",
+    funeral_cost: 0,
+    debts: 0,
+    wasiyyah_amount: 0,
+  });
+  const [heirs, setHeirs] = useState([]);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [savedId, setSavedId] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
+
+  useEffect(() => {
+    if (!user || !showLogin) return;
+    setShowLogin(false);
+    const action = pendingAction;
+    setPendingAction(null);
+    if (action === "save") handleSave();
+    else if (action === "history") setView("history");
+    else if (action === "dashboard") setView("dashboard");
+    else if (action === "premium") setView("premium");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, showLogin]);
+
+  const step = STEPS[stepIndex];
+
+  if (sharedToken) {
+    return (
+      <SharedCase
+        token={sharedToken}
+        onClose={() => {
+          window.history.replaceState({}, "", "/");
+          setSharedToken(null);
+        }}
+      />
+    );
+  }
+
+  if (page === "delete-account") return <DeleteAccount />;
+
+  if (showSplash) {
+    return (
+      <Suspense
+        fallback={
+          <div className="fixed inset-0 z-50 bg-[#020806] flex items-center justify-center">
+            <div
+              className="text-2xl font-bold animate-pulse"
+              style={{ color: "#d9b65c", letterSpacing: "6px" }}
+            >
+              FARA'ID AI
+            </div>
+          </div>
+        }
       >
-        <Logo size={34} />
+        <IntroSplash onFinish={() => setShowSplash(false)} />
+      </Suspense>
+    );
+  }
 
-        <div className="text-left min-w-0">
-          <div className="text-sm font-semibold text-gray-900 leading-tight truncate">
-            {t.appName}
-          </div>
+  if (page === "about") return <AboutUs onBack={goHome} />;
+  if (page === "terms") return <Terms onBack={goHome} />;
+  if (page === "privacy") return <PrivacyPolicy onBack={goHome} />;
+  if (page === "disclaimer") return <Disclaimer onBack={goHome} />;
 
-          <div className="text-[11px] text-gray-400 leading-tight tracking-wide truncate">
-            {t.tagline}
-          </div>
-        </div>
-      </button>
-    </div>
-
-    <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-
-      <ThemeToggle />
-
-      <div className="w-[115px] sm:w-[130px] shrink-0">
-        <LanguageSwitcher />
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-sm text-gray-400">
+        {t.loadingAuth}
       </div>
+    );
+  }
 
-      {!user && (
-        <button
-          onClick={() => {
-            setPendingAction(null);
-            setShowLogin(true);
-          }}
-          className="px-2.5 sm:px-3.5 py-1.5 text-sm rounded-lg bg-brand-600 text-white font-medium hover:bg-brand-700 whitespace-nowrap shrink-0"
-        >
-          {t.loginBtn}
-        </button>
-      )}
+  async function goNext() {
+    if (step === "heirs") {
+      setStepIndex(stepIndex + 1);
+      setLoading(true);
+      setError(null);
+      try {
+        const payload = { ...data, heirs };
+        const res = await api.calculate(payload);
+        setResult(res);
+        maybeShowInterstitial();
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    setStepIndex(Math.min(stepIndex + 1, STEPS.length - 1));
+  }
 
-      {user && (
-        <div className="relative shrink-0">
-          <button
-            onClick={() => setMenuOpen((v) => !v)}
-            className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300"
-            aria-label="Menu"
-          >
-            ☰
-          </button>
+  function goBack() {
+    setStepIndex(Math.max(stepIndex - 1, 0));
+  }
 
-          {menuOpen && createPortal(
-            <>
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setMenuOpen(false)}
-              />
+  async function handleSave() {
+    if (!user) {
+      setPendingAction("save");
+      setShowLogin(true);
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload = { ...data, heirs };
+      const res = await api.createCase(payload);
+      setSavedId(res.id);
+      maybeShowInterstitial();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
 
-              <div className="fixed inset-y-0 left-0 w-[340px] max-w-[88vw] bg-white shadow-2xl z-50 flex flex-col overflow-hidden">
+  function handleNewCase() {
+    setData({
+      title: "",
+      estate_amount: 0,
+      currency: "NGN",
+      funeral_cost: 0,
+      debts: 0,
+      wasiyyah_amount: 0,
+    });
+    setHeirs([]);
+    setResult(null);
+    setSavedId(null);
+    setStepIndex(0);
+    setView("wizard");
+  }
 
-                <div className="flex items-center justify-between px-6 py-6 border-b border-gray-100">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-xl bg-gray-50 flex items-center justify-center text-xl">
-                      ⚖️
-                    </div>
+  function goToHome() {
+    setView("home");
+  }
+  function goToHistory(query = "") {
+    if (!user) {
+      setPendingAction("history");
+      setShowLogin(true);
+      return;
+    }
+    setHistoryQuery(query);
+    setView("history");
+  }
+  function goToLearn() {
+    setView("learn");
+  }
+  function goToRelations() {
+    setView("relations");
+  }
+  function goToZakat() {
+    setView("zakat");
+  }
+  function goToAdmin() {
+    setView("admin");
+  }
+  function goToPremium() {
+    if (!user) {
+      setPendingAction("premium");
+      setShowLogin(true);
+      return;
+    }
+    setView("premium");
+  }
+  function goToWealth() {
+    setView("wealth");
+  }
+  function goToWasiyyah() {
+    setView("wasiyyah-planner");
+  }
+  function goToRubuuDinar() {
+    setView("rubuu-dinar");
+  }
+  function goToMyFamily() {
+    setView("my-family");
+  }
+  function goToCalculator() {
+    handleNewCase();
+  }
+  function goToDashboard() {
+    if (!user) {
+      setPendingAction("dashboard");
+      setShowLogin(true);
+      return;
+    }
+    setView("dashboard");
+  }
 
-                    <div>
-                      <div className="text-lg font-bold text-gray-900">
-                        Fara'id AI
-                      </div>
+  return (
+    <div className="min-h-screen relative">
+      <IslamicWatermark />
+      <NotificationBanner />
 
-                      <div className="text-xs text-gray-400">
-                        Islamic Inheritance Intelligence
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => setMenuOpen(false)}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl text-2xl text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-                    aria-label="Close menu"
-                  >
-                    ×
-                  </button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto py-4">
-
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      goToDashboard();
-                    }}
-                    className="w-full text-left px-6 py-4 text-base font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-4"
-                  >
-                    <span className="w-8 text-center text-xl">📊</span>
-                    <span>Dashboard</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      goToPremium();
-                    }}
-                    className="w-full text-left px-6 py-4 text-base font-medium text-gray-700 hover:bg-amber-50 flex items-center gap-4"
-                  >
-                    <span className="w-8 text-center text-xl">
-                      {user.is_premium &&
-                      (!user.premium_expires_at ||
-                        new Date(user.premium_expires_at) > new Date())
-                        ? "👑"
-                        : "⭐"}
-                    </span>
-
-                    <span>
-                      {user.is_premium &&
-                      (!user.premium_expires_at ||
-                        new Date(user.premium_expires_at) > new Date())
-                        ? "Premium"
-                        : t.tilePremium}
-                    </span>
-                  </button>
-
-                  <div className="border-t border-gray-100 my-3 mx-5" />
-
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      goToCalculator();
-                    }}
-                    className="w-full text-left px-6 py-4 text-base text-gray-700 hover:bg-brand-50 flex items-center gap-4"
-                  >
-                    <span className="w-8 text-center text-xl">⚖️</span>
-                    <span>Inheritance Calculator</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      goToWealth();
-                    }}
-                    className="w-full text-left px-6 py-4 text-base text-gray-700 hover:bg-brand-50 flex items-center gap-4"
-                  >
-                    <span className="w-8 text-center text-xl">💰</span>
-                    <span>Wealth &amp; Zakat</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      goToRubuuDinar();
-                    }}
-                    className="w-full text-left px-6 py-4 text-base text-gray-700 hover:bg-brand-50 flex items-center gap-4"
-                  >
-                    <span className="w-8 text-center text-xl">🪙</span>
-                    <span>Rubu'u Dinar Alert</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      goToWasiyyah();
-                    }}
-                    className="w-full text-left px-6 py-4 text-base text-gray-700 hover:bg-brand-50 flex items-center gap-4"
-                  >
-                    <span className="w-8 text-center text-xl">📜</span>
-                    <span>My Wasiyyah</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      goToMyFamily();
-                    }}
-                    className="w-full text-left px-6 py-4 text-base text-gray-700 hover:bg-brand-50 flex items-center gap-4"
-                  >
-                    <span className="w-8 text-center text-xl">👨‍👩‍👧‍👦</span>
-                    <span>My Family</span>
-                  </button>
-
-                  <div className="border-t border-gray-100 my-3 mx-5" />
-
-                  {user.is_admin && (
-                    <>
-                      <button
-                        onClick={() => {
-                          setMenuOpen(false);
-                          goToAdmin();
-                        }}
-                        className="w-full text-left px-6 py-4 text-base text-gray-700 hover:bg-brand-50 flex items-center gap-4"
-                      >
-                        <span className="w-8 text-center text-xl">🛠️</span>
-                        <span>Admin Dashboard</span>
-                      </button>
-
-                      <div className="border-t border-gray-100 my-3 mx-5" />
-                    </>
-                  )}
-
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      goToHistory();
-                    }}
-                    className="w-full text-left px-6 py-4 text-base text-gray-700 hover:bg-brand-50 flex items-center gap-4"
-                  >
-                    <span className="w-8 text-center text-xl">⏱️</span>
-                    <span>{t.tileHistory}</span>
-                  </button>
-                </div>
-
-                <div className="border-t border-gray-100 bg-gray-50/70">
-
-                  <button
-                    onClick={async () => {
-                      setMenuOpen(false);
-                      await unregisterCurrentDevice();
-                      logout();
-                    }}
-                    className="w-full text-left px-6 py-4 text-base text-red-600 hover:bg-red-50 flex items-center gap-4"
-                  >
-                    <span className="w-8 text-center text-xl">↪</span>
-                    <span>{t.logout}</span>
-                  </button>
-
-                  <button
-                    onClick={async () => {
-                      setMenuOpen(false);
-
-                      if (
-                        !window.confirm(
-                          "Permanently delete your account and all saved cases? This cannot be undone."
-                        )
-                      ) {
-                        return;
-                      }
-
-                      try {
-                        await authApi.deleteAccount();
-                      } finally {
-                        logout();
-                      }
-                    }}
-                    className="w-full text-left px-6 py-4 text-sm text-red-500 hover:bg-red-50 flex items-center gap-4"
-                  >
-                    <span className="w-8 text-center text-xl">🗑️</span>
-                    <span>Delete account</span>
-                  </button>
-
-                </div>
+      <header className="border-b border-gray-100 bg-white/90 backdrop-blur-sm sticky top-0 z-10 shadow-sm">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={goToHome}
+              className="flex items-center gap-3 rounded-lg -mx-1 px-1 py-0.5 hover:opacity-80"
+            >
+              <Logo size={34} />
+              <div className="text-left">
+                <div className="text-sm font-semibold text-gray-900 leading-tight">{t.appName}</div>
+                <div className="text-[11px] text-gray-400 leading-tight tracking-wide">{t.tagline}</div>
               </div>
-            </>,
-            document.body
-          )}
+            </button>
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <ThemeToggle />
+            <LanguageSwitcher />
+            {!user && (
+              <button
+                onClick={() => {
+                  setPendingAction(null);
+                  setShowLogin(true);
+                }}
+                className="px-3.5 py-1.5 text-sm rounded-lg bg-brand-600 text-white font-medium hover:bg-brand-700"
+              >
+                {t.loginBtn}
+              </button>
+            )}
+            {user && (
+              <div className="relative">
+                <button
+                  onClick={() => setMenuOpen((v) => !v)}
+                  className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300"
+                  aria-label="Menu"
+                >
+                  ☰
+                </button>
+                {menuOpen && createPortal(
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                    <div className="fixed inset-y-0 left-0 w-[340px] max-w-[88vw] bg-white shadow-2xl z-50 flex flex-col overflow-hidden">
+                      <div className="flex items-center justify-between px-6 py-6 border-b border-gray-100">
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 rounded-xl bg-gray-50 flex items-center justify-center text-xl">
+                            ⚖️
+                          </div>
+                          <div>
+                            <div className="text-lg font-bold text-gray-900">Fara'id AI</div>
+                            <div className="text-xs text-gray-400">Islamic Inheritance Intelligence</div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setMenuOpen(false)}
+                          className="w-10 h-10 flex items-center justify-center rounded-xl text-2xl text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                          aria-label="Close menu"
+                        >
+                          ×
+                        </button>
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto py-4">
+                        <button
+                          onClick={() => {
+                            setMenuOpen(false);
+                            goToDashboard();
+                          }}
+                          className="w-full text-left px-6 py-4 text-base font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-4"
+                        >
+                          <span className="w-8 text-center text-xl">📊</span>
+                          <span>Dashboard</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setMenuOpen(false);
+                            goToPremium();
+                          }}
+                          className="w-full text-left px-6 py-4 text-base font-medium text-gray-700 hover:bg-amber-50 flex items-center gap-4"
+                        >
+                          <span className="w-8 text-center text-xl">
+                            {user.is_premium &&
+                            (!user.premium_expires_at || new Date(user.premium_expires_at) > new Date())
+                              ? "👑"
+                              : "⭐"}
+                          </span>
+                          <span>
+                            {user.is_premium &&
+                            (!user.premium_expires_at || new Date(user.premium_expires_at) > new Date())
+                              ? "Premium"
+                              : t.tilePremium}
+                          </span>
+                        </button>
+
+                        <div className="border-t border-gray-100 my-3 mx-5" />
+
+                        <button
+                          onClick={() => { setMenuOpen(false); goToCalculator(); }}
+                          className="w-full text-left px-6 py-4 text-base text-gray-700 hover:bg-brand-50 flex items-center gap-4"
+                        >
+                          <span className="w-8 text-center text-xl">⚖️</span>
+                          <span>Inheritance Calculator</span>
+                        </button>
+
+                        <button
+                          onClick={() => { setMenuOpen(false); goToWealth(); }}
+                          className="w-full text-left px-6 py-4 text-base text-gray-700 hover:bg-brand-50 flex items-center gap-4"
+                        >
+                          <span className="w-8 text-center text-xl">💰</span>
+                          <span>Wealth &amp; Zakat</span>
+                        </button>
+
+                        <button
+                          onClick={() => { setMenuOpen(false); goToZakat(); }}
+                          className="w-full text-left px-6 py-4 text-base text-gray-700 hover:bg-brand-50 flex items-center gap-4"
+                        >
+                          <span className="w-8 text-center text-xl">🕌</span>
+                          <span>Zakat Calculator</span>
+                        </button>
+
+                        <button
+                          onClick={() => { setMenuOpen(false); goToRubuuDinar(); }}
+                          className="w-full text-left px-6 py-4 text-base text-gray-700 hover:bg-brand-50 flex items-center gap-4"
+                        >
+                          <span className="w-8 text-center text-xl">🪙</span>
+                          <span>Rubu'u Dinar Alert</span>
+                        </button>
+
+                        <button
+                          onClick={() => { setMenuOpen(false); goToWasiyyah(); }}
+                          className="w-full text-left px-6 py-4 text-base text-gray-700 hover:bg-brand-50 flex items-center gap-4"
+                        >
+                          <span className="w-8 text-center text-xl">📜</span>
+                          <span>My Wasiyyah</span>
+                        </button>
+
+                        <button
+                          onClick={() => { setMenuOpen(false); goToMyFamily(); }}
+                          className="w-full text-left px-6 py-4 text-base text-gray-700 hover:bg-brand-50 flex items-center gap-4"
+                        >
+                          <span className="w-8 text-center text-xl">👨‍👩‍👧‍👦</span>
+                          <span>My Family</span>
+                        </button>
+
+                        <div className="border-t border-gray-100 my-3 mx-5" />
+
+                        {user.is_admin && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setMenuOpen(false);
+                                goToAdmin();
+                              }}
+                              className="w-full text-left px-6 py-4 text-base text-gray-700 hover:bg-brand-50 flex items-center gap-4"
+                            >
+                              <span className="w-8 text-center text-xl">🛠️</span>
+                              <span>Admin Dashboard</span>
+                            </button>
+
+                            <div className="border-t border-gray-100 my-3 mx-5" />
+                          </>
+                        )}
+
+                        <button
+                          onClick={() => {
+                            setMenuOpen(false);
+                            goToHistory();
+                          }}
+                          className="w-full text-left px-6 py-4 text-base text-gray-700 hover:bg-brand-50 flex items-center gap-4"
+                        >
+                          <span className="w-8 text-center text-xl">⏱️</span>
+                          <span>{t.tileHistory}</span>
+                        </button>
+                      </div>
+
+                      <div className="border-t border-gray-100 bg-gray-50/70">
+                        <button
+                          onClick={async () => {
+                            setMenuOpen(false);
+                            await unregisterCurrentDevice();
+                            logout();
+                          }}
+                          className="w-full text-left px-6 py-4 text-base text-red-600 hover:bg-red-50 flex items-center gap-4"
+                        >
+                          <span className="w-8 text-center text-xl">↪</span>
+                          <span>{t.logout}</span>
+                        </button>
+
+                        <button
+                          onClick={async () => {
+                            setMenuOpen(false);
+                            if (
+                              !window.confirm(
+                                "Permanently delete your account and all saved cases? This cannot be undone."
+                              )
+                            )
+                              return;
+                            try {
+                              await authApi.deleteAccount();
+                            } finally {
+                              logout();
+                            }
+                          }}
+                          className="w-full text-left px-6 py-4 text-sm text-red-500 hover:bg-red-50 flex items-center gap-4"
+                        >
+                          <span className="w-8 text-center text-xl">🗑️</span>
+                          <span>Delete account</span>
+                        </button>
+                      </div>
+                    </div>
+                  </>,
+                  document.body
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-5xl mx-auto px-4 py-6">
+        {view === "dashboard" && (
+          <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
+            <Dashboard
+              onHome={goToHome}
+              onHistory={goToHistory}
+              onNewCase={handleNewCase}
+              onZakat={goToZakat}
+              onMenu={() => {
+                setView("home");
+                setMenuOpen(true);
+              }}
+            />
+          </Suspense>
+        )}
+
+        {view === "home" && (
+          <Home
+            onNewCase={handleNewCase}
+            onHistory={() => goToHistory()}
+            onLearn={goToLearn}
+            onRelations={goToRelations}
+            onPremium={goToPremium}
+            onSearch={(q) => goToHistory(q)}
+          />
+        )}
+
+        {view === "premium" && (
+          <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
+            <Premium onBack={goToHome} />
+          </Suspense>
+        )}
+
+        {view === "zakat" && (
+          isPremium ? (
+            <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
+              <ZakatCalculator onBack={goToHome} />
+            </Suspense>
+          ) : (
+            <PremiumGate
+              title={t.tileZakat}
+              description={t.tileZakatDesc}
+              onBack={goToHome}
+              onUpgrade={goToPremium}
+            />
+          )
+        )}
+
+        {view === "admin" && user?.is_admin && (
+          <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
+            <AdminDashboard onBack={goToHome} />
+          </Suspense>
+        )}
+
+        {view === "relations" && (
+          <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
+            <FamilyRelations onBack={goToHome} />
+          </Suspense>
+        )}
+
+        {view === "wealth" && <WealthTracker onBack={goToHome} onZakat={goToZakat} />}
+
+        {view === "rubuu-dinar" && <RubuuDinarAlert onBack={goToHome} />}
+
+        {view === "wasiyyah-planner" && <WasiyyahPlanner onBack={goToHome} />}
+
+        {view === "my-family" && <MyFamily onBack={goToHome} onRelations={goToRelations} />}
+
+        {view === "history" && (
+          <History
+            initialQuery={historyQuery}
+            onBack={goToHome}
+            onNewCase={handleNewCase}
+          />
+        )}
+
+        {view === "learn" && <Learn onBack={goToHome} />}
+
+        {view === "wizard" && (
+          <>
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-gray-100 p-5 sm:p-7 shadow-md">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900">{t.newCase}</h2>
+              <p className="text-sm text-gray-500 mt-0.5">{t.newCaseDesc}</p>
+            </div>
+            <button
+              onClick={goToHome}
+              className="text-sm text-gray-500 hover:text-gray-700 shrink-0 rounded-lg px-2 py-1 hover:bg-gray-50"
+            >
+              ← {t.back}
+            </button>
+          </div>
+
+          <div className="mt-4">
+            <StepTabs current={step} />
+          </div>
+
+          <div className="mt-6 min-h-[280px]">
+            {step === "estate" && <StepEstate data={data} setData={setData} />}
+            {step === "deductions" && <StepDeductions data={data} setData={setData} />}
+            {step === "wasiyyah" && <StepWasiyyah data={data} setData={setData} />}
+            {step === "heirs" && <StepHeirs heirs={heirs} setHeirs={setHeirs} />}
+            {step === "result" && <StepResult result={result} loading={loading} error={error} />}
+          </div>
+
+          <div className="mt-6 flex items-center justify-between border-t border-gray-100 pt-5">
+            <button
+              onClick={goBack}
+              disabled={stepIndex === 0}
+              className="px-4 py-2.5 text-sm rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 hover:bg-gray-50 hover:border-gray-300 font-medium"
+            >
+              ← {t.back}
+            </button>
+
+            {step !== "result" ? (
+              <button
+                onClick={goNext}
+                className="px-6 py-2.5 text-sm rounded-lg bg-brand-600 text-white font-semibold hover:bg-brand-700"
+              >
+                {step === "heirs" ? t.calculate : t.next} →
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  onClick={handleNewCase}
+                  className="px-4 py-2.5 text-sm rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 font-medium"
+                >
+                  {t.newCaseBtn}
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving || !!savedId}
+                  className="px-6 py-2.5 text-sm rounded-lg bg-brand-600 text-white font-semibold hover:bg-brand-700 disabled:opacity-50"
+                >
+                  {savedId ? "✓ " + t.saveCase : saving ? "…" : t.saveCase}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+          </>
+        )}
+
+        <div className="text-center text-[11px] text-gray-400 mt-8 pb-2">
+          {t.appName} · {t.scholarBadge}
+        </div>
+        <div className="flex items-center justify-center gap-4 text-[11px] text-gray-400 pb-3">
+          <button onClick={() => navigate("/about", "about")} className="hover:text-gray-600">
+            {t.footerAbout}
+          </button>
+          <span>·</span>
+          <button onClick={() => navigate("/terms", "terms")} className="hover:text-gray-600">
+            {t.footerTerms}
+          </button>
+          <span>·</span>
+          <button onClick={() => navigate("/privacy", "privacy")} className="hover:text-gray-600">
+            {t.footerPrivacy}
+          </button>
+          <span>·</span>
+          <button onClick={() => navigate("/disclaimer", "disclaimer")} className="hover:text-gray-600">
+            {t.footerDisclaimer}
+          </button>
+        </div>
+        <div className="flex items-center justify-center gap-4 pb-6">
+          <a
+            href="https://x.com/Faraid_AI"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="X (Twitter)"
+            className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:text-brand-700 hover:border-brand-300 transition"
+          >
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+          </a>
+          <a
+            href="https://www.facebook.com/profile.php?id=61594245950066"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Facebook"
+            className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:text-brand-700 hover:border-brand-300 transition"
+          >
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+              <path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.9h2.54V9.85c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.87h2.78l-.44 2.9h-2.34V22c4.78-.76 8.44-4.92 8.44-9.94z" />
+            </svg>
+          </a>
+        </div>
+      </main>
+
+      {user && <ChatWidget />}
+
+      {showLogin && (
+        <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
+          <button
+            onClick={() => {
+              setShowLogin(false);
+              setPendingAction(null);
+            }}
+            aria-label="Close"
+            className="absolute top-4 right-4 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200"
+          >
+            ✕
+          </button>
+          <Login />
         </div>
       )}
     </div>
-  </div>
-</header>
+  );
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+export default function App() {
+  return (
+    <LanguageProvider>
+      <AppInner />
+    </LanguageProvider>
+  );
+}
