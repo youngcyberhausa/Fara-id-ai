@@ -35,6 +35,8 @@ export default function Premium({ onBack }) {
     setBusy(true);
     try {
       const res = await paymentsApi.initialize();
+
+      // Paystack checkout receives NGN, while the app keeps showing $2.
       window.location.href = res.authorization_url;
     } catch (e) {
       setError(e.message);

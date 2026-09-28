@@ -24,6 +24,25 @@ PAYSTACK_BASE = "https://api.paystack.co"
 class InitPaymentResponse(BaseModel):
     authorization_url: str
     reference: str
+    amount_ngn: int
+    exchange_rate: float
+
+
+async def get_usd_ngn_rate() -> float:
+    """Get the current USD -> NGN exchange rate."""
+    async with httpx.AsyncClient(timeout=10) as client:
+        resp = await client.get(FX_BASE)
+        resp.raise_for_status()
+        data = resp.json()
+
+    rate = data.get("rates", {}).get("NGN")
+    if not rate or float(rate) <= 0:
+        raise HTTPException(
+            status_code=503,
+            detail="Current USD/NGN exchange rate is unavailable.",
+        )
+
+    return float(rate)
 
 
 @router.post("/initialize", response_model=InitPaymentResponse)
@@ -33,6 +52,12 @@ async def initialize_payment(
 ):
     if not PAYSTACK_SECRET_KEY:
         raise HTTPException(status_code=503, detail="Payments aren't configured yet.")
+
+    exchange_rate = await get_usd_ngn_rate()
+
+    # $2 is the public price. Paystack receives NGN only.
+    amount_ngn = round(PREMIUM_MONTHLY_PRICE_USD * exchange_rate)
+    amount_kobo = amount_ngn * 100
 
     reference = f"faraid_{user.id[:8]}_{int(datetime.utcnow().timestamp())}"
 
@@ -47,7 +72,13 @@ async def initialize_payment(
                 "currency": "USD",
                 "channels": ["card"],
                 "callback_url": f"{FRONTEND_URL}?payment=callback",
-                "metadata": {"user_id": user.id, "purpose": "premium_monthly"},
+                "metadata": {
+                    "user_id": user.id,
+                    "purpose": "premium_monthly",
+                    "price_usd": PREMIUM_MONTHLY_PRICE_USD,
+                    "exchange_rate_usd_ngn": exchange_rate,
+                    "amount_ngn": amount_ngn,
+                },
             },
         )
     data = resp.json()
@@ -66,6 +97,8 @@ async def initialize_payment(
     return InitPaymentResponse(
         authorization_url=data["data"]["authorization_url"],
         reference=reference,
+        amount_ngn=amount_ngn,
+        exchange_rate=exchange_rate,
     )
 
 
