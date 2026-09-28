@@ -113,10 +113,8 @@ def forgot_password(req: schemas.ForgotPasswordRequest, db: Session = Depends(ge
 
     try:
         send_password_reset_otp(user.email, otp)
-    except Exception:
-        # Don't leak SMTP failures to the client; the generic message still
-        # applies. The server logs will show the failure for debugging.
-        pass
+    except Exception as e:
+        print(f"[email:error] Password reset OTP failed for {user.email}: {e}")
 
     return generic_response
 
@@ -196,8 +194,8 @@ def request_account_deletion(req: schemas.RequestAccountDeletionRequest, db: Ses
 
     try:
         send_account_deletion_otp(user.email, otp)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[email:error] Account deletion OTP failed for {user.email}: {e}")
 
     return generic_response
 
