@@ -338,113 +338,166 @@ function AppInner() {
                 {menuOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                    <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl border border-gray-100 shadow-lg z-20 overflow-hidden py-1">
-                      <button
-                        onClick={() => {
-                          setMenuOpen(false);
-                          goToDashboard();
-                        }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                      >
-                        📊 Dashboard
-                      </button>
-                      <button
-                        onClick={() => {
-                          setMenuOpen(false);
-                          goToPremium();
-                        }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-amber-50 flex items-center gap-2"
-                      >
-                        {user.is_premium &&
-                        (!user.premium_expires_at || new Date(user.premium_expires_at) > new Date())
-                          ? "👑 Premium"
-                          : `⭐ ${t.tilePremium}`}
-                      </button>
-                      <div className="border-t border-gray-100" />
-                      <button
-                        onClick={() => { setMenuOpen(false); goToCalculator(); }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 flex items-center gap-2.5"
-                      >
-                        <span className="w-6 text-center">⚖️</span> Inheritance Calculator
-                      </button>
-                      <button
-                        onClick={() => { setMenuOpen(false); goToWealth(); }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 flex items-center gap-2.5"
-                      >
-                        <span className="w-6 text-center">💰</span> Wealth & Zakat
-                      </button>
-                      <button
-                        onClick={() => { setMenuOpen(false); goToRubuuDinar(); }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 flex items-center gap-2.5"
-                      >
-                        <span className="w-6 text-center">🪙</span> Rubu'u Dinar Alert
-                      </button>
-                      <button
-                        onClick={() => { setMenuOpen(false); goToWasiyyah(); }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 flex items-center gap-2.5"
-                      >
-                        <span className="w-6 text-center">📜</span> My Wasiyyah
-                      </button>
-                      <button
-                        onClick={() => { setMenuOpen(false); goToMyFamily(); }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 flex items-center gap-2.5"
-                      >
-                        <span className="w-6 text-center">👨‍👩‍👧‍👦</span> My Family
-                      </button>
-                      <div className="border-t border-gray-100 mx-2" />
-                      {user.is_admin && (
-                        <>
-                          <button
-                            onClick={() => {
-                              setMenuOpen(false);
-                              goToAdmin();
-                            }}
-                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 flex items-center gap-2.5"
-                          >
-                            <span className="w-6 text-center">🛠</span> Admin Dashboard
-                          </button>
-                          <div className="border-t border-gray-100 mx-2" />
-                        </>
-                      )}
-                      <button
-                        onClick={() => {
-                          setMenuOpen(false);
-                          goToHistory();
-                        }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 flex items-center gap-2.5"
-                      >
-                        <span className="w-6 text-center">⏱</span> {t.tileHistory}
-                      </button>
-                      <div className="border-t border-gray-100 mx-2" />
-                      <button
-                        onClick={async () => {
-                          setMenuOpen(false);
-                          await unregisterCurrentDevice();
-                          logout();
-                        }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2.5"
-                      >
-                        <span className="w-6 text-center">↪</span> {t.logout}
-                      </button>
-                      <button
-                        onClick={async () => {
-                          setMenuOpen(false);
-                          if (
-                            !window.confirm(
-                              "Permanently delete your account and all saved cases? This cannot be undone."
-                            )
-                          )
-                            return;
-                          try {
-                            await authApi.deleteAccount();
-                          } finally {
+                    <div className="fixed inset-y-0 left-0 w-[340px] max-w-[88vw] bg-white shadow-2xl z-50 flex flex-col overflow-hidden">
+                      <div className="flex items-center justify-between px-6 py-6 border-b border-gray-100">
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 rounded-xl bg-gray-50 flex items-center justify-center text-xl">
+                            ⚖️
+                          </div>
+                          <div>
+                            <div className="text-lg font-bold text-gray-900">Fara'id AI</div>
+                            <div className="text-xs text-gray-400">Islamic Inheritance Intelligence</div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setMenuOpen(false)}
+                          className="w-10 h-10 flex items-center justify-center rounded-xl text-2xl text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                          aria-label="Close menu"
+                        >
+                          ×
+                        </button>
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto py-4">
+                        <button
+                          onClick={() => {
+                            setMenuOpen(false);
+                            goToDashboard();
+                          }}
+                          className="w-full text-left px-6 py-4 text-base font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-4"
+                        >
+                          <span className="w-8 text-center text-xl">📊</span>
+                          <span>Dashboard</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setMenuOpen(false);
+                            goToPremium();
+                          }}
+                          className="w-full text-left px-6 py-4 text-base font-medium text-gray-700 hover:bg-amber-50 flex items-center gap-4"
+                        >
+                          <span className="w-8 text-center text-xl">
+                            {user.is_premium &&
+                            (!user.premium_expires_at || new Date(user.premium_expires_at) > new Date())
+                              ? "👑"
+                              : "⭐"}
+                          </span>
+                          <span>
+                            {user.is_premium &&
+                            (!user.premium_expires_at || new Date(user.premium_expires_at) > new Date())
+                              ? "Premium"
+                              : t.tilePremium}
+                          </span>
+                        </button>
+
+                        <div className="border-t border-gray-100 my-3 mx-5" />
+
+                        <button
+                          onClick={() => { setMenuOpen(false); goToCalculator(); }}
+                          className="w-full text-left px-6 py-4 text-base text-gray-700 hover:bg-brand-50 flex items-center gap-4"
+                        >
+                          <span className="w-8 text-center text-xl">⚖️</span>
+                          <span>Inheritance Calculator</span>
+                        </button>
+
+                        <button
+                          onClick={() => { setMenuOpen(false); goToWealth(); }}
+                          className="w-full text-left px-6 py-4 text-base text-gray-700 hover:bg-brand-50 flex items-center gap-4"
+                        >
+                          <span className="w-8 text-center text-xl">💰</span>
+                          <span>Wealth &amp; Zakat</span>
+                        </button>
+
+                        <button
+                          onClick={() => { setMenuOpen(false); goToRubuuDinar(); }}
+                          className="w-full text-left px-6 py-4 text-base text-gray-700 hover:bg-brand-50 flex items-center gap-4"
+                        >
+                          <span className="w-8 text-center text-xl">🪙</span>
+                          <span>Rubu'u Dinar Alert</span>
+                        </button>
+
+                        <button
+                          onClick={() => { setMenuOpen(false); goToWasiyyah(); }}
+                          className="w-full text-left px-6 py-4 text-base text-gray-700 hover:bg-brand-50 flex items-center gap-4"
+                        >
+                          <span className="w-8 text-center text-xl">📜</span>
+                          <span>My Wasiyyah</span>
+                        </button>
+
+                        <button
+                          onClick={() => { setMenuOpen(false); goToMyFamily(); }}
+                          className="w-full text-left px-6 py-4 text-base text-gray-700 hover:bg-brand-50 flex items-center gap-4"
+                        >
+                          <span className="w-8 text-center text-xl">👨‍👩‍👧‍👦</span>
+                          <span>My Family</span>
+                        </button>
+
+                        <div className="border-t border-gray-100 my-3 mx-5" />
+
+                        {user.is_admin && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setMenuOpen(false);
+                                goToAdmin();
+                              }}
+                              className="w-full text-left px-6 py-4 text-base text-gray-700 hover:bg-brand-50 flex items-center gap-4"
+                            >
+                              <span className="w-8 text-center text-xl">🛠️</span>
+                              <span>Admin Dashboard</span>
+                            </button>
+
+                            <div className="border-t border-gray-100 my-3 mx-5" />
+                          </>
+                        )}
+
+                        <button
+                          onClick={() => {
+                            setMenuOpen(false);
+                            goToHistory();
+                          }}
+                          className="w-full text-left px-6 py-4 text-base text-gray-700 hover:bg-brand-50 flex items-center gap-4"
+                        >
+                          <span className="w-8 text-center text-xl">⏱️</span>
+                          <span>{t.tileHistory}</span>
+                        </button>
+                      </div>
+
+                      <div className="border-t border-gray-100 bg-gray-50/70">
+                        <button
+                          onClick={async () => {
+                            setMenuOpen(false);
+                            await unregisterCurrentDevice();
                             logout();
-                          }
-                        }}
-                        className="w-full text-left px-4 py-2.5 text-xs text-red-400 hover:bg-red-50 flex items-center gap-2.5"
-                      >
-                        <span className="w-6 text-center">🗑</span> Delete account
-                      </button>
+                          }}
+                          className="w-full text-left px-6 py-4 text-base text-red-600 hover:bg-red-50 flex items-center gap-4"
+                        >
+                          <span className="w-8 text-center text-xl">↪</span>
+                          <span>{t.logout}</span>
+                        </button>
+
+                        <button
+                          onClick={async () => {
+                            setMenuOpen(false);
+                            if (
+                              !window.confirm(
+                                "Permanently delete your account and all saved cases? This cannot be undone."
+                              )
+                            )
+                              return;
+                            try {
+                              await authApi.deleteAccount();
+                            } finally {
+                              logout();
+                            }
+                          }}
+                          className="w-full text-left px-6 py-4 text-sm text-red-500 hover:bg-red-50 flex items-center gap-4"
+                        >
+                          <span className="w-8 text-center text-xl">🗑️</span>
+                          <span>Delete account</span>
+                        </button>
+                      </div>
                     </div>
                   </>
                 )}
