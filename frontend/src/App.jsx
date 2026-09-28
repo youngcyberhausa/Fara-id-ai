@@ -37,6 +37,7 @@ import StepHeirs from "./components/StepHeirs";
 import StepResult from "./components/StepResult";
 import { api, authApi } from "./api";
 import { setupPushNotifications, unregisterCurrentDevice, cleanupPushListeners } from "./pushNotifications";
+import { createPortal } from "react-dom";
 
 function AppInner() {
   const { t } = useLang();
@@ -335,7 +336,7 @@ function AppInner() {
                 >
                   ☰
                 </button>
-                {menuOpen && (
+                {menuOpen && createPortal(
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
                     <div className="fixed inset-y-0 left-0 w-[340px] max-w-[88vw] bg-white shadow-2xl z-50 flex flex-col overflow-hidden">
@@ -499,7 +500,8 @@ function AppInner() {
                         </button>
                       </div>
                     </div>
-                  </>
+                  </>,
+                  document.body
                 )}
               </div>
             )}
