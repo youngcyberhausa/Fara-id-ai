@@ -16,7 +16,7 @@ from ..deps import get_current_user
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
 PAYSTACK_SECRET_KEY = os.environ.get("PAYSTACK_SECRET_KEY")
-PREMIUM_MONTHLY_PRICE_KOBO = int(os.environ.get("PREMIUM_MONTHLY_PRICE_KOBO", "30000"))  # ₦300 default
+PREMIUM_MONTHLY_PRICE_USD_CENTS = int(os.environ.get("PREMIUM_MONTHLY_PRICE_USD_CENTS", "200"))  # $2.00/month
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 PAYSTACK_BASE = "https://api.paystack.co"
 
@@ -42,10 +42,10 @@ async def initialize_payment(
             headers={"Authorization": f"Bearer {PAYSTACK_SECRET_KEY}"},
             json={
                 "email": user.email,
-                "amount": PREMIUM_MONTHLY_PRICE_KOBO,
+                "amount": PREMIUM_MONTHLY_PRICE_USD_CENTS,
                 "reference": reference,
-                "currency": "NGN",
-                "channels": ["card", "bank", "ussd", "mobile_money", "bank_transfer", "qr"],
+                "currency": "USD",
+                "channels": ["card"],
                 "callback_url": f"{FRONTEND_URL}?payment=callback",
                 "metadata": {"user_id": user.id, "purpose": "premium_monthly"},
             },
@@ -57,7 +57,7 @@ async def initialize_payment(
     payment = models.Payment(
         user_id=user.id,
         reference=reference,
-        amount_kobo=PREMIUM_MONTHLY_PRICE_KOBO,
+        amount_kobo=PREMIUM_MONTHLY_PRICE_USD_CENTS,
         status="pending",
     )
     db.add(payment)

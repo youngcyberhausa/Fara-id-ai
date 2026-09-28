@@ -565,18 +565,9 @@ function AppInner() {
         )}
 
         {view === "relations" && (
-          isPremium ? (
-            <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
-              <FamilyRelations onBack={goToHome} />
-            </Suspense>
-          ) : (
-            <PremiumGate
-              title={t.tileRelations}
-              description={t.tileRelationsDesc}
-              onBack={goToHome}
-              onUpgrade={goToPremium}
-            />
-          )
+          <Suspense fallback={<div className="text-sm text-gray-400 text-center py-10">…</div>}>
+            <FamilyRelations onBack={goToHome} />
+          </Suspense>
         )}
 
         {view === "wealth" && <WealthTracker onBack={goToHome} onZakat={goToZakat} />}
