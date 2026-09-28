@@ -411,6 +411,14 @@ function AppInner() {
                         </button>
 
                         <button
+                          onClick={() => { setMenuOpen(false); goToZakat(); }}
+                          className="w-full text-left px-6 py-4 text-base text-gray-700 hover:bg-brand-50 flex items-center gap-4"
+                        >
+                          <span className="w-8 text-center text-xl">🕌</span>
+                          <span>Zakat Calculator</span>
+                        </button>
+
+                        <button
                           onClick={() => { setMenuOpen(false); goToRubuuDinar(); }}
                           className="w-full text-left px-6 py-4 text-base text-gray-700 hover:bg-brand-50 flex items-center gap-4"
                         >
@@ -531,7 +539,6 @@ function AppInner() {
             onHistory={() => goToHistory()}
             onLearn={goToLearn}
             onRelations={goToRelations}
-            onZakat={goToZakat}
             onPremium={goToPremium}
             onSearch={(q) => goToHistory(q)}
           />

@@ -202,10 +202,6 @@ export default function Dashboard({ onHome, onHistory, onNewCase, onZakat, onMen
         >
           +
         </button>
-        <button onClick={onZakat} className="flex flex-col items-center gap-0.5 px-3 py-1 text-gray-400">
-          <span className="text-lg">🕌</span>
-          <span className="text-[10px]">Zakat</span>
-        </button>
         <button onClick={onMenu} className="flex flex-col items-center gap-0.5 px-3 py-1 text-gray-400">
           <span className="text-lg">☰</span>
           <span className="text-[10px]">Menu</span>
