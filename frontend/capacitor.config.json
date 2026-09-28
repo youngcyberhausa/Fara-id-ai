@@ -1,5 +1,16 @@
 {
   "appId": "ai.faraid.app",
   "appName": "Fara'id AI",
-  "webDir": "dist"
+  "webDir": "dist",
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert",
+        "banner",
+        "list"
+      ]
+    }
+  }
 }

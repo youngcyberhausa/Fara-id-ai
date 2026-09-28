@@ -6,12 +6,8 @@ router = APIRouter(prefix="/api/zakat", tags=["zakat"])
 GRAMS_PER_TROY_OUNCE = 31.1034768
 
 
-@router.get("/prices")
-async def get_metal_prices(currency: str = "NGN"):
-    """Live gold & silver price per gram, converted to the requested
-    currency. Uses free, no-API-key public sources. Fails gracefully
-    (returns null prices + available=False) if a source is down, so the
-    frontend can fall back to manual entry instead of breaking."""
+async def fetch_metal_prices(currency: str = "NGN"):
+    """Fetch live gold/silver prices using the same source as the Zakat UI."""
     currency = currency.upper()
     gold_usd_oz = None
     silver_usd_oz = None
@@ -20,6 +16,7 @@ async def get_metal_prices(currency: str = "NGN"):
     async with httpx.AsyncClient(timeout=8) as client:
         try:
             r = await client.get("https://data-asg.goldprice.org/dbXRates/USD")
+            r.raise_for_status()
             data = r.json()
             item = data["items"][0]
             gold_usd_oz = item.get("xauPrice")
@@ -30,6 +27,7 @@ async def get_metal_prices(currency: str = "NGN"):
         if currency != "USD":
             try:
                 r = await client.get("https://open.er-api.com/v6/latest/USD")
+                r.raise_for_status()
                 data = r.json()
                 fx_rate = data.get("rates", {}).get(currency)
             except Exception:
@@ -40,12 +38,19 @@ async def get_metal_prices(currency: str = "NGN"):
             return None
         return round((usd_per_oz / GRAMS_PER_TROY_OUNCE) * fx_rate, 4)
 
-    gold_price_per_gram = to_gram_price(gold_usd_oz)
-    silver_price_per_gram = to_gram_price(silver_usd_oz)
-
     return {
         "currency": currency,
-        "gold_price_per_gram": gold_price_per_gram,
-        "silver_price_per_gram": silver_price_per_gram,
-        "available": gold_price_per_gram is not None and silver_price_per_gram is not None,
+        "gold_price_per_gram": to_gram_price(gold_usd_oz),
+        "silver_price_per_gram": to_gram_price(silver_usd_oz),
+    }
+
+
+@router.get("/prices")
+async def get_metal_prices(currency: str = "NGN"):
+    prices = await fetch_metal_prices(currency)
+    gold_price = prices["gold_price_per_gram"]
+    silver_price = prices["silver_price_per_gram"]
+    return {
+        **prices,
+        "available": gold_price is not None and silver_price is not None,
     }

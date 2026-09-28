@@ -12,3 +12,6 @@ frontend/package-lock.json
 /package-lock.json
 frontend/dist/
 frontend/dist/
+
+# Firebase Android config (provide locally / via GitHub Actions secret)
+frontend/android/app/google-services.json

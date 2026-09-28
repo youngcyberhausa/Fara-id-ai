@@ -27,11 +27,22 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: frontend
-        run: npm ci
+        run: npm install
 
       - name: Build web app
         working-directory: frontend
         run: npm run build
+
+      - name: Decode Firebase Android config
+        env:
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON_BASE64" ]; then
+            echo "Missing GOOGLE_SERVICES_JSON_BASE64 GitHub secret"
+            exit 1
+          fi
+          echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > "$GITHUB_WORKSPACE/frontend/android/app/google-services.json"
+          test -s "$GITHUB_WORKSPACE/frontend/android/app/google-services.json"
 
       - name: Sync Capacitor Android
         working-directory: frontend
@@ -127,6 +138,8 @@ jobs:
             --notes "Automatically built from the latest main branch. Download app-release.apk and install it on your Android device (enable 'install from unknown sources' if prompted)." \
             --latest
 
-      - name: Clean signing keystore
+      - name: Clean signing keystore and Firebase config
         if: always()
-        run: rm -f "$GITHUB_WORKSPACE/faraid-release.keystore"
+        run: |
+          rm -f "$GITHUB_WORKSPACE/faraid-release.keystore"
+          rm -f "$GITHUB_WORKSPACE/frontend/android/app/google-services.json"

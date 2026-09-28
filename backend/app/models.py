@@ -28,6 +28,10 @@ class User(Base):
     # Admin access (dashboard, announcements)
     is_admin = Column(Boolean, default=False)
 
+    # Push notifications are ON by default. Android still requires the user
+    # to grant the OS notification permission before FCM can display alerts.
+    push_notifications_enabled = Column(Boolean, default=True, nullable=False)
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -87,4 +91,46 @@ class Announcement(Base):
     message = Column(String, nullable=True)
     video_url = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class DeviceToken(Base):
+    """An FCM registration token belonging to a user's Android device."""
+    __tablename__ = "device_tokens"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    token = Column(String, unique=True, nullable=False, index=True)
+    platform = Column(String, default="android", nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class RubuuDinarPrice(Base):
+    """Current Rubu'u Dinar price state.
+
+    Rubu'u Dinar is calculated from the same live 24K gold price-per-gram
+    source used by the app's Zakat calculator, multiplied by 1.0625 grams.
+    """
+    __tablename__ = "rubuu_dinar_price"
+
+    id = Column(String, primary_key=True, default=lambda: "current")
+    currency = Column(String, default="NGN", nullable=False)
+    gold_price_per_gram = Column(Float, nullable=False)
+    rubuu_dinar_price = Column(Float, nullable=False)
+    previous_rubuu_dinar_price = Column(Float, nullable=True)
+    checked_at = Column(DateTime, default=datetime.utcnow)
+    last_notified_price = Column(Float, nullable=True)
+
+
+class RubuuDinarAlert(Base):
+    """A record of a Rubu'u Dinar price alert delivered to a user."""
+    __tablename__ = "rubuu_dinar_alerts"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    price = Column(Float, nullable=False)
+    previous_price = Column(Float, nullable=True)
+    direction = Column(String, nullable=False)  # up | down
     created_at = Column(DateTime, default=datetime.utcnow)

@@ -124,6 +124,37 @@ export const authApi = {
     }).then(handle),
 };
 
+
+export const notificationsApi = {
+  getPreferences: () =>
+    fetch(`${BASE_URL}/notifications/preferences`, { headers: authHeaders() }).then(handle),
+
+  updatePreferences: (enabled) =>
+    fetch(`${BASE_URL}/notifications/preferences`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ enabled }),
+    }).then(handle),
+
+  registerDeviceToken: (token, platform = "android") =>
+    fetch(`${BASE_URL}/notifications/device-token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ token, platform }),
+    }).then(handle),
+
+  removeDeviceToken: (token, platform = "android") =>
+    fetch(`${BASE_URL}/notifications/device-token`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ token, platform }),
+    }).then(handle),
+};
+
+export const rubuuDinarApi = {
+  getCurrent: () => fetch(`${BASE_URL}/rubuu-dinar/price`).then(handle),
+};
+
 export const supportApi = {
   chat: (message, history) =>
     fetch(`${BASE_URL}/support/chat`, {

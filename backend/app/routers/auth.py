@@ -157,6 +157,8 @@ def _erase_user_and_data(db: Session, user: models.User) -> None:
     level, so children are removed explicitly first."""
     db.query(models.Case).filter(models.Case.user_id == user.id).delete()
     db.query(models.Payment).filter(models.Payment.user_id == user.id).delete()
+    db.query(models.DeviceToken).filter(models.DeviceToken.user_id == user.id).delete()
+    db.query(models.RubuuDinarAlert).filter(models.RubuuDinarAlert.user_id == user.id).delete()
     db.delete(user)
     db.commit()
 

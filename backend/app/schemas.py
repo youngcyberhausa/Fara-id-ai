@@ -55,6 +55,7 @@ class UserOut(BaseModel):
     is_premium: bool = False
     premium_expires_at: Optional[datetime] = None
     is_admin: bool = False
+    push_notifications_enabled: bool = True
     created_at: Optional[datetime] = None
 
     class Config:
@@ -129,3 +130,28 @@ class AdminStats(BaseModel):
     total_cases: int
     premium_users: int
     new_users_7d: int
+
+
+class DeviceTokenRequest(BaseModel):
+    token: str = Field(min_length=10, max_length=4096)
+    platform: str = Field(default="android", min_length=2, max_length=32)
+
+
+class NotificationPreferenceRequest(BaseModel):
+    enabled: bool
+
+
+class NotificationPreferenceOut(BaseModel):
+    enabled: bool
+
+
+class RubuuDinarPriceOut(BaseModel):
+    currency: str
+    gold_price_per_gram: float
+    rubuu_dinar_price: float
+    previous_rubuu_dinar_price: Optional[float] = None
+    checked_at: Optional[datetime] = None
+    grams: float = 1.0625
+
+    class Config:
+        from_attributes = True

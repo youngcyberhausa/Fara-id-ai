@@ -22,6 +22,7 @@ import PremiumGate from "./components/PremiumGate";
 import MyFamily from "./components/MyFamily";
 import WasiyyahPlanner from "./components/WasiyyahPlanner";
 import WealthTracker from "./components/WealthTracker";
+import RubuuDinarAlert from "./components/RubuuDinarAlert";
 const AdminDashboard = lazy(() => import("./components/AdminDashboard"));
 const Dashboard = lazy(() => import("./components/Dashboard"));
 const FamilyRelations = lazy(() => import("./components/FamilyRelations"));
@@ -35,10 +36,11 @@ import StepWasiyyah from "./components/StepWasiyyah";
 import StepHeirs from "./components/StepHeirs";
 import StepResult from "./components/StepResult";
 import { api, authApi } from "./api";
+import { setupPushNotifications, unregisterCurrentDevice, cleanupPushListeners } from "./pushNotifications";
 
 function AppInner() {
   const { t } = useLang();
-  const { user, loading: authLoading, logout } = useAuth();
+  const { user, token, loading: authLoading, logout } = useAuth();
   const isPremium =
     user?.is_premium && (!user.premium_expires_at || new Date(user.premium_expires_at) > new Date());
 
@@ -63,6 +65,19 @@ function AppInner() {
     script.dataset.adsbygoogle = "true";
     document.head.appendChild(script);
   }, []);
+
+  useEffect(() => {
+    if (!user || !token || !user.push_notifications_enabled) {
+      cleanupPushListeners();
+      return undefined;
+    }
+
+    setupPushNotifications().catch(() => {});
+
+    return () => {
+      cleanupPushListeners();
+    };
+  }, [user?.id, user?.push_notifications_enabled, token]);
 
   const [page, setPage] = useState(() => {
     const p = window.location.pathname;
@@ -260,6 +275,9 @@ function AppInner() {
   function goToWasiyyah() {
     setView("wasiyyah-planner");
   }
+  function goToRubuuDinar() {
+    setView("rubuu-dinar");
+  }
   function goToMyFamily() {
     setView("my-family");
   }
@@ -356,6 +374,12 @@ function AppInner() {
                         <span className="w-6 text-center">💰</span> Wealth & Zakat
                       </button>
                       <button
+                        onClick={() => { setMenuOpen(false); goToRubuuDinar(); }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 flex items-center gap-2.5"
+                      >
+                        <span className="w-6 text-center">🪙</span> Rubu'u Dinar Alert
+                      </button>
+                      <button
                         onClick={() => { setMenuOpen(false); goToWasiyyah(); }}
                         className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 flex items-center gap-2.5"
                       >
@@ -393,8 +417,9 @@ function AppInner() {
                       </button>
                       <div className="border-t border-gray-100 mx-2" />
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           setMenuOpen(false);
+                          await unregisterCurrentDevice();
                           logout();
                         }}
                         className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2.5"
@@ -500,6 +525,8 @@ function AppInner() {
         )}
 
         {view === "wealth" && <WealthTracker onBack={goToHome} onZakat={goToZakat} />}
+
+        {view === "rubuu-dinar" && <RubuuDinarAlert onBack={goToHome} />}
 
         {view === "wasiyyah-planner" && <WasiyyahPlanner onBack={goToHome} />}
 
