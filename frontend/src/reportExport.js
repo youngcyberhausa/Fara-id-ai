@@ -11,6 +11,9 @@ import {
   WidthType,
 } from "docx";
 
+import { Capacitor } from "@capacitor/core";
+import { Filesystem, Directory } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
 const BRAND = {
   50: "#ecfdf3",
   100: "#d1fae0",
@@ -83,15 +86,66 @@ function svgToPngDataUrl(svgString, size = 128) {
   });
 }
 
-function saveBlob(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+async function saveBlob(blob, filename) {
+  if (!Capacitor.isNativePlatform()) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = filename;
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(url);
+    return;
+  }
+
+  try {
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onloadend = () => {
+        const result = reader.result;
+
+        if (typeof result !== "string") {
+          reject(new Error("Could not convert file to Base64"));
+          return;
+        }
+
+        const commaIndex = result.indexOf(",");
+
+        if (commaIndex === -1) {
+          reject(new Error("Invalid file data"));
+          return;
+        }
+
+        resolve(result.substring(commaIndex + 1));
+      };
+
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+
+    const saved = await Filesystem.writeFile({
+      path: filename,
+      data: base64,
+      directory: Directory.Cache,
+    });
+
+    await Share.share({
+      title: filename,
+      text: "Fara'id AI document",
+      url: saved.uri,
+      dialogTitle: "Save or share document",
+    });
+  } catch (error) {
+    console.error("Native file save failed:", error);
+    throw error;
+  }
+
+
 }
 
 async function loadPdfFont(doc, lang) {
@@ -258,8 +312,9 @@ export async function exportResultPdf(result, t = {}, lang = "en") {
       });
     });
   }
+const pdfBlob = doc.output("blob");
+await saveBlob(pdfBlob, `faraid-result-${Date.now()}.pdf`);
 
-  doc.save(`faraid-result-${Date.now()}.pdf`);
 }
 
 export async function exportResultDocx(result, t = {}) {
@@ -388,5 +443,5 @@ export async function exportResultDocx(result, t = {}) {
   });
 
   const blob = await Packer.toBlob(doc);
-  saveBlob(blob, `faraid-result-${Date.now()}.docx`);
+  await saveBlob(blob, `faraid-result-${Date.now()}.docx`);
 }
