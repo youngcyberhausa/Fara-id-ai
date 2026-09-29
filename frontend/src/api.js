@@ -86,18 +86,14 @@ export const authApi = {
       body: JSON.stringify({ email }),
     }).then(handle),
 
-  verifyOtp: (email, otp) =>
-    fetch(`${BASE_URL}/auth/verify-otp`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, otp }),
-    }).then(handle),
-
-  resetPassword: (email, otp, newPassword) =>
+  resetPassword: (token, newPassword) =>
     fetch(`${BASE_URL}/auth/reset-password`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, otp, new_password: newPassword }),
+      body: JSON.stringify({
+        token,
+        new_password: newPassword,
+      }),
     }).then(handle),
 
   // Signed-in deletion (used by the in-app "Delete account" button).
