@@ -125,11 +125,14 @@ export const notificationsApi = {
   getPreferences: () =>
     fetch(`${BASE_URL}/notifications/preferences`, { headers: authHeaders() }).then(handle),
 
-  updatePreferences: (enabled) =>
+  updatePreferences: (enabled, currency = null) =>
     fetch(`${BASE_URL}/notifications/preferences`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", ...authHeaders() },
-      body: JSON.stringify({ enabled }),
+      body: JSON.stringify({
+        enabled,
+        ...(currency ? { currency } : {}),
+      }),
     }).then(handle),
 
   registerDeviceToken: (token, platform = "android") =>
@@ -148,7 +151,7 @@ export const notificationsApi = {
 };
 
 export const rubuuDinarApi = {
-  getCurrent: () => fetch(`${BASE_URL}/rubuu-dinar/price`).then(handle),
+  getCurrent: (currency = "NGN") => fetch(`${BASE_URL}/rubuu-dinar/price?currency=${encodeURIComponent(currency)}`).then(handle),
 };
 
 export const supportApi = {

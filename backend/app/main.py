@@ -19,6 +19,9 @@ _MIGRATIONS = [
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS paystack_customer_code VARCHAR",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS push_notifications_enabled BOOLEAN DEFAULT TRUE",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS rubuu_dinar_currency VARCHAR(3) DEFAULT 'NGN'",
+    "ALTER TABLE users ALTER COLUMN rubuu_dinar_currency SET DEFAULT 'NGN'",
+    "UPDATE users SET rubuu_dinar_currency = 'NGN' WHERE rubuu_dinar_currency IS NULL",
     "ALTER TABLE cases ADD COLUMN IF NOT EXISTS share_token VARCHAR",
 ]
 try:

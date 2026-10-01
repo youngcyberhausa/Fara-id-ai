@@ -32,6 +32,9 @@ class User(Base):
     # to grant the OS notification permission before FCM can display alerts.
     push_notifications_enabled = Column(Boolean, default=True, nullable=False)
 
+    # Currency selected for Rubu'u Dinar automatic price alerts.
+    rubuu_dinar_currency = Column(String(3), default="NGN", nullable=False)
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
 

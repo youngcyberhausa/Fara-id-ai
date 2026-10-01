@@ -56,6 +56,7 @@ class UserOut(BaseModel):
     premium_expires_at: Optional[datetime] = None
     is_admin: bool = False
     push_notifications_enabled: bool = True
+    rubuu_dinar_currency: str = "NGN"
     created_at: Optional[datetime] = None
 
     class Config:
@@ -138,10 +139,12 @@ class DeviceTokenRequest(BaseModel):
 
 class NotificationPreferenceRequest(BaseModel):
     enabled: bool
+    currency: Optional[str] = None
 
 
 class NotificationPreferenceOut(BaseModel):
     enabled: bool
+    currency: str = "NGN"
 
 
 class RubuuDinarPriceOut(BaseModel):

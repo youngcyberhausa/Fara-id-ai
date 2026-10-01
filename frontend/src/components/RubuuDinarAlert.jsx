@@ -7,7 +7,7 @@ import {
   setupPushNotifications,
 } from "../pushNotifications";
 
-export default function RubuuDinarAlert({ onBack }) {
+export default function RubuuDinarAlert({ onBack, currency = "NGN" }) {
   const { user, refreshUser } = useAuth();
   const [price, setPrice] = useState(null);
   const [enabled, setEnabled] = useState(Boolean(user?.push_notifications_enabled));
@@ -18,7 +18,7 @@ export default function RubuuDinarAlert({ onBack }) {
   useEffect(() => {
     let cancelled = false;
     Promise.all([
-      rubuuDinarApi.getCurrent(),
+      rubuuDinarApi.getCurrent(currency),
       notificationsApi.getPreferences(),
     ])
       .then(([current, prefs]) => {
@@ -35,7 +35,7 @@ export default function RubuuDinarAlert({ onBack }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [currency]);
 
   async function toggleNotifications() {
     const next = !enabled;
@@ -59,10 +59,10 @@ export default function RubuuDinarAlert({ onBack }) {
           return;
         }
 
-        await notificationsApi.updatePreferences(true);
+        await notificationsApi.updatePreferences(true, currency);
         setEnabled(true);
       } else {
-        await notificationsApi.updatePreferences(false);
+        await notificationsApi.updatePreferences(false, currency);
         await disablePushNotifications();
         setEnabled(false);
       }

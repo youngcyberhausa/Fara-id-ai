@@ -579,7 +579,7 @@ function AppInner() {
 
         {view === "wealth" && <WealthTracker onBack={goToHome} onZakat={goToZakat} />}
 
-        {view === "rubuu-dinar" && <RubuuDinarAlert onBack={goToHome} />}
+        {view === "rubuu-dinar" && <RubuuDinarAlert onBack={goToHome} currency={data.currency} />}
 
         {view === "wasiyyah-planner" && <WasiyyahPlanner onBack={goToHome} />}
 
