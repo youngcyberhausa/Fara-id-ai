@@ -7,14 +7,59 @@ import {
   setupPushNotifications,
 } from "../pushNotifications";
 
-const CURRENCIES = [
-  { code: "NGN", flag: "🇳🇬", name: "Nigerian Naira" },
-  { code: "USD", flag: "🇺🇸", name: "US Dollar" },
-  { code: "GBP", flag: "🇬🇧", name: "British Pound" },
-  { code: "SAR", flag: "🇸🇦", name: "Saudi Riyal" },
-  { code: "AED", flag: "🇦🇪", name: "UAE Dirham" },
-  { code: "EUR", flag: "🇪🇺", name: "Euro" },
-];
+import { CURRENCIES as BASE_CURRENCIES } from "../i18n/currencies";
+
+const CURRENCY_FLAGS = {
+  NGN: "🇳🇬",
+  USD: "🇺🇸",
+  EUR: "🇪🇺",
+  GBP: "🇬🇧",
+  SAR: "🇸🇦",
+  AED: "🇦🇪",
+  EGP: "🇪🇬",
+  GHS: "🇬🇭",
+  KES: "🇰🇪",
+  TZS: "🇹🇿",
+  UGX: "🇺🇬",
+  ZAR: "🇿🇦",
+  XOF: "🌍",
+  XAF: "🌍",
+  MAD: "🇲🇦",
+  DZD: "🇩🇿",
+  TND: "🇹🇳",
+  ETB: "🇪🇹",
+  SDG: "🇸🇩",
+  QAR: "🇶🇦",
+  KWD: "🇰🇼",
+  BHD: "🇧🇭",
+  OMR: "🇴🇲",
+  JOD: "🇯🇴",
+  TRY: "🇹🇷",
+  PKR: "🇵🇰",
+  INR: "🇮🇳",
+  BDT: "🇧🇩",
+  IDR: "🇮🇩",
+  MYR: "🇲🇾",
+  SGD: "🇸🇬",
+  PHP: "🇵🇭",
+  THB: "🇹🇭",
+  LKR: "🇱🇰",
+  AFN: "🇦🇫",
+  IRR: "🇮🇷",
+  IQD: "🇮🇶",
+  CAD: "🇨🇦",
+  AUD: "🇦🇺",
+  JPY: "🇯🇵",
+  CNY: "🇨🇳",
+  RUB: "🇷🇺",
+  BRL: "🇧🇷",
+  MXN: "🇲🇽",
+};
+
+const CURRENCIES = BASE_CURRENCIES.map((currency) => ({
+  ...currency,
+  flag: CURRENCY_FLAGS[currency.code] || "💱",
+}));
 
 export default function RubuuDinarAlert({ onBack, currency = "NGN" }) {
   const { user, refreshUser } = useAuth();
