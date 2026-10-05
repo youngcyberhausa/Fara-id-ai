@@ -166,21 +166,49 @@ export default function ZakatCalculator({ onBack }) {
 
       {result && (
         <div className="mt-6 space-y-3">
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="rounded-lg border border-gray-200 px-3 py-3">
-              <div className="text-[11px] text-gray-400">{z.zakatableLabel}</div>
-              <div className="text-sm font-semibold mt-0.5 text-gray-800">{fmt(result.zakatable)}</div>
+          <div className="rounded-lg border border-gray-200 bg-white px-4 py-4">
+            <div className="text-[11px] text-gray-400 uppercase tracking-wide">
+              {z.nisabLabel} ({currency})
             </div>
-            <div className="rounded-lg border border-gray-200 px-3 py-3">
-              <div className="text-[11px] text-gray-400">{z.nisabLabel}</div>
-              <div className="text-sm font-semibold mt-0.5 text-gray-800">{fmt(result.nisabValue)}</div>
+
+            <div className="mt-1 text-xl font-bold text-gray-800">
+              {fmt(result.nisabValue)}
+            </div>
+
+            <div className="mt-1 text-xs text-gray-500">
+              {nisabBasis === "gold"
+                ? `${GOLD_NISAB_GRAMS}g Gold Nisab`
+                : `${SILVER_NISAB_GRAMS}g Silver Nisab`}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-white px-4 py-4">
+            <div className="text-[11px] text-gray-400 uppercase tracking-wide">
+              {z.zakatableLabel} ({currency})
+            </div>
+
+            <div className="mt-1 text-xl font-bold text-gray-800">
+              {fmt(result.zakatable)}
+            </div>
+
+            <div className="mt-1 text-xs text-gray-500">
+              2.5% Zakat rate
             </div>
           </div>
 
           {result.meetsNisab ? (
-            <div className="rounded-lg border border-brand-300 bg-brand-50 px-4 py-4 text-center">
-              <div className="text-xs text-brand-700 mb-1">{z.zakatDueLabel}</div>
-              <div className="text-2xl font-bold text-brand-700">{fmt(result.zakatDue)}</div>
+            <div className="rounded-lg border border-brand-300 bg-brand-50 px-4 py-5 text-center">
+              <div className="text-xs text-brand-700 mb-1">
+                {z.zakatDueLabel} ({currency})
+              </div>
+
+              <div className="text-3xl font-bold text-brand-700">
+                {fmt(result.zakatDue)}
+              </div>
+
+              <div className="text-xs text-brand-600 mt-2">
+                2.5% of your zakatable wealth
+              </div>
             </div>
           ) : (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
