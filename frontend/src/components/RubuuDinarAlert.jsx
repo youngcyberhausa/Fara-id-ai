@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../AuthContext";
+import { useLang } from "../i18n/LanguageContext";
 import { notificationsApi, rubuuDinarApi } from "../api";
 import {
   disablePushNotifications,
@@ -63,6 +64,8 @@ const CURRENCIES = BASE_CURRENCIES.map((currency) => ({
 
 export default function RubuuDinarAlert({ onBack, currency = "NGN" }) {
   const { user, refreshUser } = useAuth();
+  const { t } = useLang();
+  const r = t.rubuuDinar;
 
   const [selectedCurrency, setSelectedCurrency] = useState(() => {
     try {
@@ -96,7 +99,7 @@ export default function RubuuDinarAlert({ onBack, currency = "NGN" }) {
       })
       .catch(() => {
         if (!cancelled) {
-          setMessage("An samu matsala wajen samun farashin yanzu.");
+          setMessage(r.errorPrice);
         }
       })
       .finally(() => {
@@ -130,7 +133,7 @@ export default function RubuuDinarAlert({ onBack, currency = "NGN" }) {
       if (next) {
         if (!isNativePushSupported()) {
           setMessage(
-            "Push alerts suna aiki a Android app; ba browser version ba."
+            r.browserPush
           );
           return;
         }
@@ -140,8 +143,8 @@ export default function RubuuDinarAlert({ onBack, currency = "NGN" }) {
         if (!result.enabled) {
           setMessage(
             result.reason === "permission_denied"
-              ? "An hana notification permission. Ka ba Fara'id AI permission a Android Settings."
-              : "Ba a kunna push notifications ba."
+              ? r.permissionDenied
+              : r.pushDisabled
           );
           return;
         }
@@ -157,7 +160,7 @@ export default function RubuuDinarAlert({ onBack, currency = "NGN" }) {
       await refreshUser();
     } catch (error) {
       setMessage(
-        error.message || "An samu matsala wajen canza notification setting."
+        error.message || r.notificationError
       );
     } finally {
       setSaving(false);
@@ -183,7 +186,7 @@ export default function RubuuDinarAlert({ onBack, currency = "NGN" }) {
         onClick={onBack}
         className="text-sm text-brand-600 hover:underline mb-4"
       >
-        ← Back
+        ← {t.back}
       </button>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
@@ -192,12 +195,11 @@ export default function RubuuDinarAlert({ onBack, currency = "NGN" }) {
             <div className="text-2xl">🪙</div>
 
             <h2 className="text-lg font-semibold text-gray-900 mt-1">
-              Rubu'u Dinar Price Alert
+              {r.title}
             </h2>
 
             <p className="text-sm text-gray-500 mt-1">
-              Za ka iya samun notification idan farashin Rubu'u Dinar ya canza,
-              ko da app ɗin ba a bude yake ba.
+              {r.desc}
             </p>
           </div>
         </div>
@@ -205,7 +207,7 @@ export default function RubuuDinarAlert({ onBack, currency = "NGN" }) {
         {/* Price Card */}
         <div className="mt-6 rounded-xl bg-gray-50 border border-gray-100 p-5">
           <div className="text-xs text-gray-500">
-            Current Rubu'u Dinar
+            {r.currentPrice}
           </div>
 
           <div className="flex items-center justify-between gap-3 mt-1">
@@ -267,7 +269,7 @@ export default function RubuuDinarAlert({ onBack, currency = "NGN" }) {
 
           {price && (
             <div className="text-xs text-gray-500 mt-2">
-              Based on 1.0625g of gold · Gold:{" "}
+              {r.basedOn}{" "}
               {formatPrice(price.gold_price_per_gram)} {selectedCurrency}/g
             </div>
           )}
@@ -277,15 +279,15 @@ export default function RubuuDinarAlert({ onBack, currency = "NGN" }) {
         <div className="mt-5 flex items-center justify-between gap-4 rounded-xl border border-gray-200 p-4">
           <div>
             <div className="text-sm font-medium text-gray-900">
-              Automatic price alerts
+              {r.automaticAlerts}
             </div>
 
             <div className="text-xs text-gray-500 mt-0.5">
-              ON by default. Za ka iya kashe shi duk lokacin da kake so.
+              {r.alertsDesc}
             </div>
 
             <div className="text-[11px] text-gray-400 mt-1">
-              Alerts: {currentCurrency.flag} {selectedCurrency}
+              {r.alerts}: {currentCurrency.flag} {selectedCurrency}
             </div>
           </div>
 
@@ -313,9 +315,7 @@ export default function RubuuDinarAlert({ onBack, currency = "NGN" }) {
         )}
 
         <p className="text-[11px] text-gray-400 mt-5 leading-relaxed">
-          Notification permission na Android dole ne a ba app damar aika
-          notifications. Server ne ke duba farashin; saboda haka app ba sai yana
-          bude ba lokacin da farashin ya canza.
+          {r.footer}
         </p>
       </div>
     </div>
