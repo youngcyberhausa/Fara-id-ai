@@ -1,44 +1,44 @@
 """
-Email utilities for Fara'id AI using Resend API.
+Email utilities for Fara'id AI using Brevo SMTP.
 """
 
 import os
+import smtplib
 import logging
-import resend
+from email.message import EmailMessage
 
 logger = logging.getLogger(__name__)
 
-RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
-RESEND_FROM = os.environ.get(
-    "RESEND_FROM",
-    "Fara'id AI <onboarding@resend.dev>",
-)
+SMTP_HOST = os.environ.get("SMTP_HOST", "smtp-relay.brevo.com")
+SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+SMTP_USER = os.environ.get("SMTP_USER", "")
+SMTP_PASS = os.environ.get("SMTP_PASS", "")
+SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USER)
 
 FRONTEND_URL = os.environ.get(
     "FRONTEND_URL",
-    "https://fara-id-ai.onrender.com",
+    "https://fara-id-ai.vercel.app",
 ).rstrip("/")
 
 
 def _send_email(to_email: str, subject: str, body: str) -> None:
-    if not RESEND_API_KEY:
-        raise RuntimeError("RESEND_API_KEY is not configured.")
+    if not SMTP_USER or not SMTP_PASS:
+        raise RuntimeError("Brevo SMTP credentials are not configured.")
 
-    resend.api_key = RESEND_API_KEY
+    message = EmailMessage()
+    message["From"] = SMTP_FROM
+    message["To"] = to_email
+    message["Subject"] = subject
+    message.set_content(body)
 
-    params = {
-        "from": RESEND_FROM,
-        "to": [to_email],
-        "subject": subject,
-        "text": body,
-    }
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as server:
+        server.ehlo()
+        server.starttls()
+        server.ehlo()
+        server.login(SMTP_USER, SMTP_PASS)
+        server.send_message(message)
 
-    response = resend.Emails.send(params)
-
-    if not response or not response.get("id"):
-        raise RuntimeError("Resend did not confirm email submission.")
-
-    logger.info("Email accepted by Resend. Message ID: %s", response["id"])
+    logger.info("Email submitted successfully through Brevo SMTP.")
 
 
 def send_password_reset_link(to_email: str, token: str) -> None:
