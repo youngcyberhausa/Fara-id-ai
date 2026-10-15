@@ -1,44 +1,64 @@
 """
-Email utilities for Fara'id AI using Brevo SMTP.
+Email utilities for Fara'id AI using Brevo Transactional Email API.
 """
 
 import os
-import smtplib
 import logging
-from email.message import EmailMessage
+import httpx
 
 logger = logging.getLogger(__name__)
 
-SMTP_HOST = os.environ.get("SMTP_HOST", "smtp-relay.brevo.com")
-SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
-SMTP_USER = os.environ.get("SMTP_USER", "")
-SMTP_PASS = os.environ.get("SMTP_PASS", "")
-SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USER)
-
+BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "").strip()
+SMTP_FROM = os.environ.get("SMTP_FROM", "").strip()
 FRONTEND_URL = os.environ.get(
     "FRONTEND_URL",
     "https://fara-id-ai.vercel.app",
 ).rstrip("/")
 
+BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
+
 
 def _send_email(to_email: str, subject: str, body: str) -> None:
-    if not SMTP_USER or not SMTP_PASS:
-        raise RuntimeError("Brevo SMTP credentials are not configured.")
+    if not BREVO_API_KEY:
+        raise RuntimeError("BREVO_API_KEY is not configured.")
 
-    message = EmailMessage()
-    message["From"] = SMTP_FROM
-    message["To"] = to_email
-    message["Subject"] = subject
-    message.set_content(body)
+    if not SMTP_FROM:
+        raise RuntimeError("SMTP_FROM verified sender email is not configured.")
 
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as server:
-        server.ehlo()
-        server.starttls()
-        server.ehlo()
-        server.login(SMTP_USER, SMTP_PASS)
-        server.send_message(message)
+    payload = {
+        "sender": {
+            "name": "Fara'id AI",
+            "email": SMTP_FROM,
+        },
+        "to": [{"email": to_email}],
+        "subject": subject,
+        "textContent": body,
+    }
 
-    logger.info("Email submitted successfully through Brevo SMTP.")
+    headers = {
+        "api-key": BREVO_API_KEY,
+        "accept": "application/json",
+        "content-type": "application/json",
+    }
+
+    with httpx.Client(timeout=20.0) as client:
+        response = client.post(
+            BREVO_API_URL,
+            json=payload,
+            headers=headers,
+        )
+
+    if response.status_code not in (200, 201, 202):
+        logger.error(
+            "Brevo email API failed: HTTP %s; response: %s",
+            response.status_code,
+            response.text[:500],
+        )
+        raise RuntimeError(
+            f"Brevo email API returned HTTP {response.status_code}."
+        )
+
+    logger.info("Email accepted by Brevo Transactional Email API.")
 
 
 def send_password_reset_link(to_email: str, token: str) -> None:
