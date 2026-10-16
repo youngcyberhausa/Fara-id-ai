@@ -53,7 +53,12 @@ function AppInner() {
     if (authLoading) return;
     initAds();
   }, [authLoading]);
-  const [showSplash, setShowSplash] = useState(true);
+  const hasResetToken = Boolean(
+    new URLSearchParams(window.location.search).get("reset_token") ||
+    new URLSearchParams(window.location.search).get("token")
+  );
+
+  const [showSplash, setShowSplash] = useState(!hasResetToken);
 
   useEffect(() => {
     const client = import.meta.env.VITE_ADSENSE_CLIENT;
@@ -132,6 +137,14 @@ function AppInner() {
   }, [user, showLogin]);
 
   const step = STEPS[stepIndex];
+
+  if (hasResetToken) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Login />
+      </div>
+    );
+  }
 
   if (sharedToken) {
     return (
